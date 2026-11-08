@@ -164,19 +164,19 @@ footer { color: var(--muted); font-size: .9rem; border-top: 1px solid var(--line
     </li>
     <li>
       <h3>„Fertig“ tippen</h3>
-      <p>Bei „Verbunden“ zeigt die Seite eine Adresse wie <code>http://192.168.43.17</code>. <b>Benutzt du ein Handy als Hotspot, kopiere oder notiere sie jetzt</b> (siehe Abschnitt Hotspot). Danach „Fertig – Auto neu starten“ tippen. Das Auto startet neu (LED voll an) und spielt die drei Töne. Danach leuchtet die LED nur noch schwach.</p>
+      <p>Bei „Verbunden“ zeigt die Seite eine Adresse wie <code>http://192.168.43.17</code>. <b>Benutzt du ein Handy als Hotspot, kopiere oder notiere sie jetzt</b> (siehe Abschnitt Hotspot). Danach „Fertig – Auto neu starten“ tippen. Das Auto startet neu (LED voll an) und spielt die drei Töne. <button type="button" class="play mini" data-snd="ready">▶ Drei Töne</button> Danach leuchtet die LED nur noch schwach.</p>
     </li>
     <li>
       <h3>Losfahren</h3>
       <p>Handy wieder mit deinem normalen WLAN verbinden (das passiert meist von selbst) und den <b>QR-Code oben auf dem Auto</b> scannen. Beim ersten Öffnen fragt die App nach einem Namen für das Auto. Fertig!</p>
-      <div class="tip"><b>Update:</b> Beim ersten Start mit Internet (und immer, wenn es eine neue Version gibt) lädt das Auto ein Update. Du hörst dann ein ca. 4 Sekunden langes <b>„Hochfahr-Geräusch“</b>: drei steigende Heultöne, jeder höher als der letzte, danach ein langer fallender. Dann ist es eine Weile still, während die LED voll leuchtet. Das Auto startet von selbst neu und spielt danach die drei Töne. Nicht ausschalten, einfach abwarten. Wird das Update unterbrochen, passiert nichts Schlimmes: das Auto startet mit der alten Version und versucht es beim nächsten Mal wieder.</div>
+      <div class="tip"><b>Update:</b> Beim ersten Start mit Internet (und immer, wenn es eine neue Version gibt) lädt das Auto ein Update. Du hörst dann ein ca. 4 Sekunden langes <b>„Hochfahr-Geräusch“</b>: drei steigende Heultöne, jeder höher als der letzte, danach ein langer fallender. <button type="button" class="play mini" data-snd="update">▶ Update-Heultöne</button> Dann ist es eine Weile still, während die LED voll leuchtet. Das Auto startet von selbst neu und spielt danach die drei Töne. Nicht ausschalten, einfach abwarten. Wird das Update unterbrochen, passiert nichts Schlimmes: das Auto startet mit der alten Version und versucht es beim nächsten Mal wieder.</div>
     </li>
   </ol>
 </section>
 
 <section>
   <h2>Weitere Autos</h2>
-  <p>Einfach einschalten, nachdem das erste Auto fertig ist. Sie fragen die Autos, die schon im WLAN sind, und bekommen die Zugangsdaten automatisch. Nach den drei Tönen den QR-Code oben auf dem jeweiligen Auto scannen.</p>
+  <p>Einfach einschalten, nachdem das erste Auto fertig ist. Sie fragen die Autos, die schon im WLAN sind, und bekommen die Zugangsdaten automatisch. Nach den drei Tönen <button type="button" class="play mini" data-snd="ready">▶ Drei Töne</button> den QR-Code oben auf dem jeweiligen Auto scannen.</p>
   <div class="note"><b>Wichtig:</b> Immer erst <b>ein</b> Auto komplett einrichten. Es gibt immer nur ein Einrichtungs-WLAN, und das bleibt offen, bis du fertig bist. Schaltest du vorher schon weitere Autos ein, öffnen sie kein eigenes, sondern starten alle 30 Sekunden neu. Sobald das erste Auto fertig ist, holen sie sich beim nächsten Neustart automatisch das WLAN. Das ist normal, du musst nichts tun.</div>
 </section>
 
@@ -246,7 +246,7 @@ footer { color: var(--muted); font-size: .9rem; border-top: 1px solid var(--line
       <summary>Ich sehe kein WLAN „HyperCrash“</summary>
       <div>
         <p>Bis zu 20 Sekunden nach dem Einschalten warten und die WLAN-Liste neu laden.</p>
-        <p>Kamen die drei Töne? Dann ist das Auto schon in einem WLAN, das es kennt. Zum Wechseln das WLAN zurücksetzen (siehe „Anderes WLAN“).</p>
+        <p>Kamen die drei Töne? <button type="button" class="play mini" data-snd="ready">▶ Drei Töne</button> Dann ist das Auto schon in einem WLAN, das es kennt. Zum Wechseln das WLAN zurücksetzen (siehe „Anderes WLAN“).</p>
         <p>LED wird langsam hell und dunkel? Das Auto hängt am Ladekabel. Kabel ab.</p>
       </div>
     </details>
@@ -282,7 +282,7 @@ footer { color: var(--muted); font-size: .9rem; border-top: 1px solid var(--line
     <details>
       <summary>Der QR-Code oben auf dem Auto öffnet nichts</summary>
       <div>
-        <p>Hat das Auto die drei Töne gespielt? Ohne sie ist es noch nicht bereit.</p>
+        <p>Hat das Auto die drei Töne gespielt? <button type="button" class="play mini" data-snd="ready">▶ Drei Töne</button> Ohne sie ist es noch nicht bereit.</p>
         <p>Ist das Handy im <b>selben WLAN</b> wie das Auto (nicht mehr in „HyperCrash“, keine mobilen Daten)?</p>
         <p>Ist das Handy selbst der Hotspot? Dann die Zahlen-Adresse benutzen, siehe Abschnitt Hotspot.</p>
       </div>
@@ -297,7 +297,7 @@ footer { color: var(--muted); font-size: .9rem; border-top: 1px solid var(--line
     <details>
       <summary>Ein zweites Auto bekommt das WLAN nicht automatisch</summary>
       <div>
-        <p>Das erste Auto muss eingeschaltet und schon fertig gestartet sein (drei Töne). Dann das zweite Auto aus- und wieder einschalten.</p>
+        <p>Das erste Auto muss eingeschaltet und schon fertig gestartet sein (drei Töne <button type="button" class="play mini" data-snd="ready">▶ anhören</button>). Dann das zweite Auto aus- und wieder einschalten.</p>
         <p>Klappt es weiter nicht, das zweite Auto genauso über das Einrichtungs-WLAN einrichten wie das erste.</p>
       </div>
     </details>
@@ -335,6 +335,7 @@ footer { color: var(--muted); font-size: .9rem; border-top: 1px solid var(--line
 .play:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .play.on { background: var(--accent); color: var(--surface); }
 .hint { color: var(--muted); font-size: .95rem; margin: 0 0 8px; }
+.play.mini { display: inline-flex; margin: 2px 0; vertical-align: middle; min-height: 30px; padding: 3px 10px; font-size: .85rem; }
 </style>
 <script>
 /* Car sounds rebuilt from the firmware's Beeper calls (square wave like ledcWriteTone, same frequencies and timings) */
