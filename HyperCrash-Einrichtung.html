@@ -1,0 +1,372 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>HyperCrash Einrichtung</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: one readable column, numbered walkthrough, LED signal legend, fold-out troubleshooting */
+:root {
+  --bg: #f3f5f8;
+  --surface: #ffffff;
+  --fg: #16202c;
+  --muted: #586473;
+  --line: #d9dfe7;
+  --accent: #1565c0;
+  --accent-soft: #e3edf9;
+  --warn: #a35a00;
+  --warn-soft: #fff3e0;
+  --led: #2f7cf6;
+  --led-off: #c7d0db;
+  --display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  --body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141b; --surface: #17202b; --fg: #e6ebf1; --muted: #9aa7b6; --line: #29364a;
+    --accent: #6aa8ff; --accent-soft: #1b2b44; --warn: #ffb74d; --warn-soft: #2e2416;
+    --led: #6aa8ff; --led-off: #33404f; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141b; --surface: #17202b; --fg: #e6ebf1; --muted: #9aa7b6; --line: #29364a;
+  --accent: #6aa8ff; --accent-soft: #1b2b44; --warn: #ffb74d; --warn-soft: #2e2416;
+  --led: #6aa8ff; --led-off: #33404f; color-scheme: dark;
+}
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 17px; line-height: 1.55; }
+.wrap { max-width: 720px; margin: 0 auto; padding-block: 28px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 40px; }
+h1, h2, h3 { font-family: var(--display); line-height: 1.1; text-wrap: balance; margin: 0; }
+h1 { font-size: 2.6rem; letter-spacing: .01em; }
+h2 { font-size: 1.8rem; }
+h3 { font-size: 1.25rem; }
+p { margin: 0; }
+section { display: flex; flex-direction: column; gap: 14px; }
+.eyebrow { font-family: var(--display); font-weight: 600; text-transform: uppercase; letter-spacing: .12em; color: var(--accent); font-size: .9rem; }
+.lead { color: var(--muted); font-size: 1.08rem; }
+a.addr { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+code, .addr { font-family: var(--mono); font-size: .92em; background: var(--accent-soft); padding: 1px 6px; border-radius: 4px; word-break: break-all; }
+ul.plain { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 4px; }
+.need { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; }
+
+/* LED legend */
+.signals { display: grid; grid-template-columns: 1fr; gap: 0; border-top: 1px solid var(--line); }
+.sig { display: grid; grid-template-columns: 48px 1fr; gap: 14px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.sig b { display: block; }
+.sig span { color: var(--muted); font-size: .95rem; }
+.led { width: 22px; height: 22px; border-radius: 50%; background: var(--led-off); justify-self: center; position: relative; }
+.led.on { background: var(--led); box-shadow: 0 0 12px var(--led); }
+.led.dim { background: color-mix(in srgb, var(--led) 35%, var(--led-off)); box-shadow: 0 0 4px color-mix(in srgb, var(--led) 40%, transparent); }
+.led.blink { animation: blink 500ms steps(1) infinite; }
+.led.breathe { animation: breathe 3s ease-in-out infinite; }
+.led.beeps::after { content: "♪"; position: absolute; left: 26px; top: -2px; color: var(--muted); font-size: 14px; }
+@keyframes blink { 0% { background: var(--led); box-shadow: 0 0 12px var(--led); } 10% { background: var(--led-off); box-shadow: none; } }
+@keyframes breathe { 0%,100% { background: var(--led-off); box-shadow: none; } 50% { background: var(--led); box-shadow: 0 0 12px var(--led); } }
+@media (prefers-reduced-motion: reduce) { .led.blink, .led.breathe { animation: none; background: var(--led); } }
+
+/* Steps */
+ol.steps { list-style: none; margin: 0; padding: 0; counter-reset: s; display: flex; flex-direction: column; gap: 0; }
+ol.steps > li { counter-increment: s; position: relative; padding: 0 0 26px 52px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: -2px; width: 34px; height: 34px; border-radius: 50%;
+  background: var(--accent); color: var(--surface); font-family: var(--display); font-weight: 700; font-size: 1.2rem;
+  display: grid; place-items: center; }
+ol.steps > li::after { content: ""; position: absolute; left: 16px; top: 38px; bottom: 6px; width: 2px; background: var(--line); }
+ol.steps > li:last-child::after { display: none; }
+ol.steps > li:last-child { padding-bottom: 0; }
+
+.qr-row { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
+.qr { background: #ffffff; padding: 8px; border-radius: 8px; width: 132px; height: 132px; border: 1px solid var(--line); }
+.qr svg { width: 100%; height: 100%; display: block; }
+.qr-row p { flex: 1 1 220px; min-width: 0; color: var(--muted); font-size: .95rem; }
+
+.copy { display: inline-flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+button.cp { font: 600 .85rem var(--body); border: 1px solid var(--accent); color: var(--accent); background: transparent; border-radius: 6px; padding: 3px 10px; cursor: pointer; }
+button.cp:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.note { border-left: 3px solid var(--warn); background: var(--warn-soft); padding: 10px 14px; border-radius: 0 8px 8px 0; font-size: .97rem; }
+.note b { color: var(--warn); }
+.tip { border-left: 3px solid var(--accent); background: var(--accent-soft); padding: 10px 14px; border-radius: 0 8px 8px 0; font-size: .97rem; }
+
+/* Troubleshooting */
+.faq { display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+details { border-bottom: 1px solid var(--line); }
+summary { cursor: pointer; padding: 13px 4px; font-weight: 600; list-style: none; display: flex; gap: 10px; align-items: baseline; }
+summary::-webkit-details-marker { display: none; }
+summary::before { content: "+"; font-family: var(--mono); color: var(--accent); width: 1em; flex: none; }
+details[open] summary::before { content: "−"; }
+details > div { padding: 0 4px 16px 30px; display: flex; flex-direction: column; gap: 8px; color: var(--fg); }
+footer { color: var(--muted); font-size: .9rem; border-top: 1px solid var(--line); padding-top: 16px; }
+@media (max-width: 480px) { h1 { font-size: 2.1rem; } h2 { font-size: 1.55rem; } ol.steps > li { padding-left: 46px; } }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<header style="display:flex;flex-direction:column;gap:10px">
+  <div class="eyebrow">HyperCrash · Erste Schritte</div>
+  <h1>Auto einrichten und losfahren</h1>
+  <p class="lead">Einmal pro Ort (Zuhause, Hotspot, Werkstatt …) musst du einem Auto sagen, welches WLAN es benutzen soll. Danach startet es von allein und alle weiteren Autos holen sich das WLAN selbst. Dauer: etwa 5 Minuten.</p>
+</header>
+
+<section>
+  <div class="need">
+    <b>Das brauchst du</b>
+    <ul class="plain">
+      <li>Ein geladenes Auto, <b>nicht</b> am Ladekabel (sonst startet es im Lademodus).</li>
+      <li>Ein Handy mit Browser.</li>
+      <li>Ein WLAN mit Name und Passwort, <b>2,4 GHz</b>. Ohne WLAN geht es auch, siehe „Unterwegs ohne WLAN“.</li>
+      <li>Internet im WLAN ist nicht nötig zum Fahren, wird aber für automatische Updates genutzt.</li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <h2>Was das Auto dir zeigt</h2>
+  <p class="hint">Die Töne kannst du dir hier anhören. Am iPhone dafür den Stummmodus ausschalten.</p>
+  <div class="signals">
+    <div class="sig"><div class="led on"></div><div><b>LED leuchtet direkt nach dem Einschalten voll</b><span>Das Auto hat Strom und startet. Sie bleibt an, bis das Auto bereit ist oder das Einrichtungs-WLAN öffnet.</span></div></div>
+    <div class="sig"><div class="led blink"></div><div><b>LED blitzt zweimal pro Sekunde kurz auf</b><span>Einrichtungs-WLAN „HyperCrash“ ist offen. Es bleibt offen, bis du das Auto eingerichtet hast. Kein Zeitdruck.</span></div></div>
+    <div class="sig"><div class="led dim beeps"></div><div><b>Drei Töne, danach leuchtet die LED nur noch schwach</b><span>Fertig gestartet und im WLAN. Jetzt kannst du dich verbinden. Das schwache Leuchten ist der normale Fahrbetrieb.</span><button type="button" class="play" data-snd="ready">▶ Anhören</button></div></div>
+    <div class="sig"><div class="led on beeps"></div><div><b>Drei steigende Heultöne, dann ein langer fallender</b><span>Ein Update wird geladen. Nicht ausschalten, das Auto startet danach von selbst neu.</span><button type="button" class="play" data-snd="update">▶ Anhören</button></div></div>
+    <div class="sig"><div class="led breathe"></div><div><b>LED wird langsam hell und dunkel</b><span>Lademodus (Ladekabel steckt). Leuchtet sie dauerhaft, ist der Akku voll. Kabel ab, dann startet das Auto normal neu. Beim Einstecken piept es einmal.</span><button type="button" class="play" data-snd="charge">▶ Anhören</button></div></div>
+  </div>
+</section>
+
+<section>
+  <h2>Das erste Auto einrichten</h2>
+  <ol class="steps">
+    <li>
+      <h3>Auto einschalten</h3>
+      <p>Das Auto sucht kurz nach einem bekannten WLAN. Kennt es keins, blitzt nach etwa 15–20 Sekunden die LED. Jetzt ist das Einrichtungs-WLAN offen und bleibt es, bis du fertig bist. Du kannst dir also Zeit lassen.</p>
+    </li>
+    <li>
+      <h3>Handy mit „HyperCrash“ verbinden</h3>
+      <div class="qr-row">
+        <div class="qr" id="wifi-qr" role="img" aria-label="QR-Code für das WLAN HyperCrash"><svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 116 116"  preserveAspectRatio="xMinYMin meet"><rect width="100%" height="100%" fill="white" cx="0" cy="0"/><path d="M0,0l4,0 0,4 -4,0 0,-4z M4,0l4,0 0,4 -4,0 0,-4z M8,0l4,0 0,4 -4,0 0,-4z M12,0l4,0 0,4 -4,0 0,-4z M16,0l4,0 0,4 -4,0 0,-4z M20,0l4,0 0,4 -4,0 0,-4z M24,0l4,0 0,4 -4,0 0,-4z M40,0l4,0 0,4 -4,0 0,-4z M52,0l4,0 0,4 -4,0 0,-4z M56,0l4,0 0,4 -4,0 0,-4z M60,0l4,0 0,4 -4,0 0,-4z M76,0l4,0 0,4 -4,0 0,-4z M80,0l4,0 0,4 -4,0 0,-4z M88,0l4,0 0,4 -4,0 0,-4z M92,0l4,0 0,4 -4,0 0,-4z M96,0l4,0 0,4 -4,0 0,-4z M100,0l4,0 0,4 -4,0 0,-4z M104,0l4,0 0,4 -4,0 0,-4z M108,0l4,0 0,4 -4,0 0,-4z M112,0l4,0 0,4 -4,0 0,-4z M0,4l4,0 0,4 -4,0 0,-4z M24,4l4,0 0,4 -4,0 0,-4z M40,4l4,0 0,4 -4,0 0,-4z M52,4l4,0 0,4 -4,0 0,-4z M56,4l4,0 0,4 -4,0 0,-4z M60,4l4,0 0,4 -4,0 0,-4z M64,4l4,0 0,4 -4,0 0,-4z M72,4l4,0 0,4 -4,0 0,-4z M80,4l4,0 0,4 -4,0 0,-4z M88,4l4,0 0,4 -4,0 0,-4z M112,4l4,0 0,4 -4,0 0,-4z M0,8l4,0 0,4 -4,0 0,-4z M8,8l4,0 0,4 -4,0 0,-4z M12,8l4,0 0,4 -4,0 0,-4z M16,8l4,0 0,4 -4,0 0,-4z M24,8l4,0 0,4 -4,0 0,-4z M32,8l4,0 0,4 -4,0 0,-4z M40,8l4,0 0,4 -4,0 0,-4z M52,8l4,0 0,4 -4,0 0,-4z M60,8l4,0 0,4 -4,0 0,-4z M72,8l4,0 0,4 -4,0 0,-4z M76,8l4,0 0,4 -4,0 0,-4z M80,8l4,0 0,4 -4,0 0,-4z M88,8l4,0 0,4 -4,0 0,-4z M96,8l4,0 0,4 -4,0 0,-4z M100,8l4,0 0,4 -4,0 0,-4z M104,8l4,0 0,4 -4,0 0,-4z M112,8l4,0 0,4 -4,0 0,-4z M0,12l4,0 0,4 -4,0 0,-4z M8,12l4,0 0,4 -4,0 0,-4z M12,12l4,0 0,4 -4,0 0,-4z M16,12l4,0 0,4 -4,0 0,-4z M24,12l4,0 0,4 -4,0 0,-4z M32,12l4,0 0,4 -4,0 0,-4z M40,12l4,0 0,4 -4,0 0,-4z M56,12l4,0 0,4 -4,0 0,-4z M60,12l4,0 0,4 -4,0 0,-4z M68,12l4,0 0,4 -4,0 0,-4z M76,12l4,0 0,4 -4,0 0,-4z M88,12l4,0 0,4 -4,0 0,-4z M96,12l4,0 0,4 -4,0 0,-4z M100,12l4,0 0,4 -4,0 0,-4z M104,12l4,0 0,4 -4,0 0,-4z M112,12l4,0 0,4 -4,0 0,-4z M0,16l4,0 0,4 -4,0 0,-4z M8,16l4,0 0,4 -4,0 0,-4z M12,16l4,0 0,4 -4,0 0,-4z M16,16l4,0 0,4 -4,0 0,-4z M24,16l4,0 0,4 -4,0 0,-4z M32,16l4,0 0,4 -4,0 0,-4z M40,16l4,0 0,4 -4,0 0,-4z M60,16l4,0 0,4 -4,0 0,-4z M64,16l4,0 0,4 -4,0 0,-4z M72,16l4,0 0,4 -4,0 0,-4z M76,16l4,0 0,4 -4,0 0,-4z M80,16l4,0 0,4 -4,0 0,-4z M88,16l4,0 0,4 -4,0 0,-4z M96,16l4,0 0,4 -4,0 0,-4z M100,16l4,0 0,4 -4,0 0,-4z M104,16l4,0 0,4 -4,0 0,-4z M112,16l4,0 0,4 -4,0 0,-4z M0,20l4,0 0,4 -4,0 0,-4z M24,20l4,0 0,4 -4,0 0,-4z M32,20l4,0 0,4 -4,0 0,-4z M40,20l4,0 0,4 -4,0 0,-4z M72,20l4,0 0,4 -4,0 0,-4z M88,20l4,0 0,4 -4,0 0,-4z M112,20l4,0 0,4 -4,0 0,-4z M0,24l4,0 0,4 -4,0 0,-4z M4,24l4,0 0,4 -4,0 0,-4z M8,24l4,0 0,4 -4,0 0,-4z M12,24l4,0 0,4 -4,0 0,-4z M16,24l4,0 0,4 -4,0 0,-4z M20,24l4,0 0,4 -4,0 0,-4z M24,24l4,0 0,4 -4,0 0,-4z M32,24l4,0 0,4 -4,0 0,-4z M40,24l4,0 0,4 -4,0 0,-4z M48,24l4,0 0,4 -4,0 0,-4z M56,24l4,0 0,4 -4,0 0,-4z M64,24l4,0 0,4 -4,0 0,-4z M72,24l4,0 0,4 -4,0 0,-4z M80,24l4,0 0,4 -4,0 0,-4z M88,24l4,0 0,4 -4,0 0,-4z M92,24l4,0 0,4 -4,0 0,-4z M96,24l4,0 0,4 -4,0 0,-4z M100,24l4,0 0,4 -4,0 0,-4z M104,24l4,0 0,4 -4,0 0,-4z M108,24l4,0 0,4 -4,0 0,-4z M112,24l4,0 0,4 -4,0 0,-4z M32,28l4,0 0,4 -4,0 0,-4z M40,28l4,0 0,4 -4,0 0,-4z M44,28l4,0 0,4 -4,0 0,-4z M56,28l4,0 0,4 -4,0 0,-4z M64,28l4,0 0,4 -4,0 0,-4z M76,28l4,0 0,4 -4,0 0,-4z M80,28l4,0 0,4 -4,0 0,-4z M0,32l4,0 0,4 -4,0 0,-4z M8,32l4,0 0,4 -4,0 0,-4z M12,32l4,0 0,4 -4,0 0,-4z M16,32l4,0 0,4 -4,0 0,-4z M20,32l4,0 0,4 -4,0 0,-4z M24,32l4,0 0,4 -4,0 0,-4z M36,32l4,0 0,4 -4,0 0,-4z M44,32l4,0 0,4 -4,0 0,-4z M48,32l4,0 0,4 -4,0 0,-4z M64,32l4,0 0,4 -4,0 0,-4z M68,32l4,0 0,4 -4,0 0,-4z M76,32l4,0 0,4 -4,0 0,-4z M88,32l4,0 0,4 -4,0 0,-4z M92,32l4,0 0,4 -4,0 0,-4z M96,32l4,0 0,4 -4,0 0,-4z M100,32l4,0 0,4 -4,0 0,-4z M104,32l4,0 0,4 -4,0 0,-4z M0,36l4,0 0,4 -4,0 0,-4z M4,36l4,0 0,4 -4,0 0,-4z M8,36l4,0 0,4 -4,0 0,-4z M12,36l4,0 0,4 -4,0 0,-4z M16,36l4,0 0,4 -4,0 0,-4z M28,36l4,0 0,4 -4,0 0,-4z M32,36l4,0 0,4 -4,0 0,-4z M40,36l4,0 0,4 -4,0 0,-4z M48,36l4,0 0,4 -4,0 0,-4z M52,36l4,0 0,4 -4,0 0,-4z M56,36l4,0 0,4 -4,0 0,-4z M60,36l4,0 0,4 -4,0 0,-4z M76,36l4,0 0,4 -4,0 0,-4z M80,36l4,0 0,4 -4,0 0,-4z M84,36l4,0 0,4 -4,0 0,-4z M92,36l4,0 0,4 -4,0 0,-4z M96,36l4,0 0,4 -4,0 0,-4z M104,36l4,0 0,4 -4,0 0,-4z M108,36l4,0 0,4 -4,0 0,-4z M12,40l4,0 0,4 -4,0 0,-4z M16,40l4,0 0,4 -4,0 0,-4z M24,40l4,0 0,4 -4,0 0,-4z M28,40l4,0 0,4 -4,0 0,-4z M36,40l4,0 0,4 -4,0 0,-4z M52,40l4,0 0,4 -4,0 0,-4z M56,40l4,0 0,4 -4,0 0,-4z M60,40l4,0 0,4 -4,0 0,-4z M64,40l4,0 0,4 -4,0 0,-4z M68,40l4,0 0,4 -4,0 0,-4z M72,40l4,0 0,4 -4,0 0,-4z M84,40l4,0 0,4 -4,0 0,-4z M100,40l4,0 0,4 -4,0 0,-4z M0,44l4,0 0,4 -4,0 0,-4z M20,44l4,0 0,4 -4,0 0,-4z M28,44l4,0 0,4 -4,0 0,-4z M40,44l4,0 0,4 -4,0 0,-4z M44,44l4,0 0,4 -4,0 0,-4z M48,44l4,0 0,4 -4,0 0,-4z M52,44l4,0 0,4 -4,0 0,-4z M60,44l4,0 0,4 -4,0 0,-4z M76,44l4,0 0,4 -4,0 0,-4z M88,44l4,0 0,4 -4,0 0,-4z M96,44l4,0 0,4 -4,0 0,-4z M108,44l4,0 0,4 -4,0 0,-4z M112,44l4,0 0,4 -4,0 0,-4z M0,48l4,0 0,4 -4,0 0,-4z M8,48l4,0 0,4 -4,0 0,-4z M16,48l4,0 0,4 -4,0 0,-4z M24,48l4,0 0,4 -4,0 0,-4z M32,48l4,0 0,4 -4,0 0,-4z M40,48l4,0 0,4 -4,0 0,-4z M44,48l4,0 0,4 -4,0 0,-4z M56,48l4,0 0,4 -4,0 0,-4z M60,48l4,0 0,4 -4,0 0,-4z M68,48l4,0 0,4 -4,0 0,-4z M76,48l4,0 0,4 -4,0 0,-4z M80,48l4,0 0,4 -4,0 0,-4z M92,48l4,0 0,4 -4,0 0,-4z M100,48l4,0 0,4 -4,0 0,-4z M104,48l4,0 0,4 -4,0 0,-4z M0,52l4,0 0,4 -4,0 0,-4z M8,52l4,0 0,4 -4,0 0,-4z M16,52l4,0 0,4 -4,0 0,-4z M20,52l4,0 0,4 -4,0 0,-4z M32,52l4,0 0,4 -4,0 0,-4z M36,52l4,0 0,4 -4,0 0,-4z M44,52l4,0 0,4 -4,0 0,-4z M48,52l4,0 0,4 -4,0 0,-4z M60,52l4,0 0,4 -4,0 0,-4z M64,52l4,0 0,4 -4,0 0,-4z M76,52l4,0 0,4 -4,0 0,-4z M88,52l4,0 0,4 -4,0 0,-4z M92,52l4,0 0,4 -4,0 0,-4z M96,52l4,0 0,4 -4,0 0,-4z M104,52l4,0 0,4 -4,0 0,-4z M108,52l4,0 0,4 -4,0 0,-4z M0,56l4,0 0,4 -4,0 0,-4z M8,56l4,0 0,4 -4,0 0,-4z M12,56l4,0 0,4 -4,0 0,-4z M16,56l4,0 0,4 -4,0 0,-4z M20,56l4,0 0,4 -4,0 0,-4z M24,56l4,0 0,4 -4,0 0,-4z M28,56l4,0 0,4 -4,0 0,-4z M36,56l4,0 0,4 -4,0 0,-4z M40,56l4,0 0,4 -4,0 0,-4z M44,56l4,0 0,4 -4,0 0,-4z M68,56l4,0 0,4 -4,0 0,-4z M72,56l4,0 0,4 -4,0 0,-4z M84,56l4,0 0,4 -4,0 0,-4z M92,56l4,0 0,4 -4,0 0,-4z M96,56l4,0 0,4 -4,0 0,-4z M104,56l4,0 0,4 -4,0 0,-4z M0,60l4,0 0,4 -4,0 0,-4z M12,60l4,0 0,4 -4,0 0,-4z M16,60l4,0 0,4 -4,0 0,-4z M28,60l4,0 0,4 -4,0 0,-4z M36,60l4,0 0,4 -4,0 0,-4z M48,60l4,0 0,4 -4,0 0,-4z M56,60l4,0 0,4 -4,0 0,-4z M64,60l4,0 0,4 -4,0 0,-4z M80,60l4,0 0,4 -4,0 0,-4z M84,60l4,0 0,4 -4,0 0,-4z M88,60l4,0 0,4 -4,0 0,-4z M92,60l4,0 0,4 -4,0 0,-4z M96,60l4,0 0,4 -4,0 0,-4z M100,60l4,0 0,4 -4,0 0,-4z M8,64l4,0 0,4 -4,0 0,-4z M24,64l4,0 0,4 -4,0 0,-4z M28,64l4,0 0,4 -4,0 0,-4z M36,64l4,0 0,4 -4,0 0,-4z M64,64l4,0 0,4 -4,0 0,-4z M68,64l4,0 0,4 -4,0 0,-4z M72,64l4,0 0,4 -4,0 0,-4z M80,64l4,0 0,4 -4,0 0,-4z M100,64l4,0 0,4 -4,0 0,-4z M108,64l4,0 0,4 -4,0 0,-4z M112,64l4,0 0,4 -4,0 0,-4z M0,68l4,0 0,4 -4,0 0,-4z M12,68l4,0 0,4 -4,0 0,-4z M20,68l4,0 0,4 -4,0 0,-4z M28,68l4,0 0,4 -4,0 0,-4z M48,68l4,0 0,4 -4,0 0,-4z M52,68l4,0 0,4 -4,0 0,-4z M56,68l4,0 0,4 -4,0 0,-4z M60,68l4,0 0,4 -4,0 0,-4z M68,68l4,0 0,4 -4,0 0,-4z M80,68l4,0 0,4 -4,0 0,-4z M84,68l4,0 0,4 -4,0 0,-4z M88,68l4,0 0,4 -4,0 0,-4z M92,68l4,0 0,4 -4,0 0,-4z M96,68l4,0 0,4 -4,0 0,-4z M108,68l4,0 0,4 -4,0 0,-4z M0,72l4,0 0,4 -4,0 0,-4z M12,72l4,0 0,4 -4,0 0,-4z M24,72l4,0 0,4 -4,0 0,-4z M28,72l4,0 0,4 -4,0 0,-4z M32,72l4,0 0,4 -4,0 0,-4z M40,72l4,0 0,4 -4,0 0,-4z M52,72l4,0 0,4 -4,0 0,-4z M56,72l4,0 0,4 -4,0 0,-4z M60,72l4,0 0,4 -4,0 0,-4z M64,72l4,0 0,4 -4,0 0,-4z M68,72l4,0 0,4 -4,0 0,-4z M72,72l4,0 0,4 -4,0 0,-4z M80,72l4,0 0,4 -4,0 0,-4z M84,72l4,0 0,4 -4,0 0,-4z M96,72l4,0 0,4 -4,0 0,-4z M100,72l4,0 0,4 -4,0 0,-4z M104,72l4,0 0,4 -4,0 0,-4z M0,76l4,0 0,4 -4,0 0,-4z M8,76l4,0 0,4 -4,0 0,-4z M20,76l4,0 0,4 -4,0 0,-4z M28,76l4,0 0,4 -4,0 0,-4z M32,76l4,0 0,4 -4,0 0,-4z M36,76l4,0 0,4 -4,0 0,-4z M52,76l4,0 0,4 -4,0 0,-4z M60,76l4,0 0,4 -4,0 0,-4z M76,76l4,0 0,4 -4,0 0,-4z M96,76l4,0 0,4 -4,0 0,-4z M112,76l4,0 0,4 -4,0 0,-4z M0,80l4,0 0,4 -4,0 0,-4z M16,80l4,0 0,4 -4,0 0,-4z M24,80l4,0 0,4 -4,0 0,-4z M32,80l4,0 0,4 -4,0 0,-4z M36,80l4,0 0,4 -4,0 0,-4z M40,80l4,0 0,4 -4,0 0,-4z M48,80l4,0 0,4 -4,0 0,-4z M56,80l4,0 0,4 -4,0 0,-4z M60,80l4,0 0,4 -4,0 0,-4z M68,80l4,0 0,4 -4,0 0,-4z M72,80l4,0 0,4 -4,0 0,-4z M76,80l4,0 0,4 -4,0 0,-4z M80,80l4,0 0,4 -4,0 0,-4z M84,80l4,0 0,4 -4,0 0,-4z M88,80l4,0 0,4 -4,0 0,-4z M92,80l4,0 0,4 -4,0 0,-4z M96,80l4,0 0,4 -4,0 0,-4z M100,80l4,0 0,4 -4,0 0,-4z M104,80l4,0 0,4 -4,0 0,-4z M32,84l4,0 0,4 -4,0 0,-4z M36,84l4,0 0,4 -4,0 0,-4z M40,84l4,0 0,4 -4,0 0,-4z M48,84l4,0 0,4 -4,0 0,-4z M60,84l4,0 0,4 -4,0 0,-4z M64,84l4,0 0,4 -4,0 0,-4z M68,84l4,0 0,4 -4,0 0,-4z M76,84l4,0 0,4 -4,0 0,-4z M80,84l4,0 0,4 -4,0 0,-4z M96,84l4,0 0,4 -4,0 0,-4z M104,84l4,0 0,4 -4,0 0,-4z M0,88l4,0 0,4 -4,0 0,-4z M4,88l4,0 0,4 -4,0 0,-4z M8,88l4,0 0,4 -4,0 0,-4z M12,88l4,0 0,4 -4,0 0,-4z M16,88l4,0 0,4 -4,0 0,-4z M20,88l4,0 0,4 -4,0 0,-4z M24,88l4,0 0,4 -4,0 0,-4z M36,88l4,0 0,4 -4,0 0,-4z M44,88l4,0 0,4 -4,0 0,-4z M48,88l4,0 0,4 -4,0 0,-4z M68,88l4,0 0,4 -4,0 0,-4z M72,88l4,0 0,4 -4,0 0,-4z M76,88l4,0 0,4 -4,0 0,-4z M80,88l4,0 0,4 -4,0 0,-4z M88,88l4,0 0,4 -4,0 0,-4z M96,88l4,0 0,4 -4,0 0,-4z M104,88l4,0 0,4 -4,0 0,-4z M0,92l4,0 0,4 -4,0 0,-4z M24,92l4,0 0,4 -4,0 0,-4z M32,92l4,0 0,4 -4,0 0,-4z M36,92l4,0 0,4 -4,0 0,-4z M44,92l4,0 0,4 -4,0 0,-4z M48,92l4,0 0,4 -4,0 0,-4z M56,92l4,0 0,4 -4,0 0,-4z M64,92l4,0 0,4 -4,0 0,-4z M80,92l4,0 0,4 -4,0 0,-4z M96,92l4,0 0,4 -4,0 0,-4z M100,92l4,0 0,4 -4,0 0,-4z M108,92l4,0 0,4 -4,0 0,-4z M0,96l4,0 0,4 -4,0 0,-4z M8,96l4,0 0,4 -4,0 0,-4z M12,96l4,0 0,4 -4,0 0,-4z M16,96l4,0 0,4 -4,0 0,-4z M24,96l4,0 0,4 -4,0 0,-4z M32,96l4,0 0,4 -4,0 0,-4z M48,96l4,0 0,4 -4,0 0,-4z M64,96l4,0 0,4 -4,0 0,-4z M72,96l4,0 0,4 -4,0 0,-4z M80,96l4,0 0,4 -4,0 0,-4z M84,96l4,0 0,4 -4,0 0,-4z M88,96l4,0 0,4 -4,0 0,-4z M92,96l4,0 0,4 -4,0 0,-4z M96,96l4,0 0,4 -4,0 0,-4z M112,96l4,0 0,4 -4,0 0,-4z M0,100l4,0 0,4 -4,0 0,-4z M8,100l4,0 0,4 -4,0 0,-4z M12,100l4,0 0,4 -4,0 0,-4z M16,100l4,0 0,4 -4,0 0,-4z M24,100l4,0 0,4 -4,0 0,-4z M32,100l4,0 0,4 -4,0 0,-4z M44,100l4,0 0,4 -4,0 0,-4z M48,100l4,0 0,4 -4,0 0,-4z M56,100l4,0 0,4 -4,0 0,-4z M60,100l4,0 0,4 -4,0 0,-4z M68,100l4,0 0,4 -4,0 0,-4z M72,100l4,0 0,4 -4,0 0,-4z M92,100l4,0 0,4 -4,0 0,-4z M104,100l4,0 0,4 -4,0 0,-4z M0,104l4,0 0,4 -4,0 0,-4z M8,104l4,0 0,4 -4,0 0,-4z M12,104l4,0 0,4 -4,0 0,-4z M16,104l4,0 0,4 -4,0 0,-4z M24,104l4,0 0,4 -4,0 0,-4z M32,104l4,0 0,4 -4,0 0,-4z M36,104l4,0 0,4 -4,0 0,-4z M44,104l4,0 0,4 -4,0 0,-4z M48,104l4,0 0,4 -4,0 0,-4z M56,104l4,0 0,4 -4,0 0,-4z M60,104l4,0 0,4 -4,0 0,-4z M64,104l4,0 0,4 -4,0 0,-4z M68,104l4,0 0,4 -4,0 0,-4z M80,104l4,0 0,4 -4,0 0,-4z M88,104l4,0 0,4 -4,0 0,-4z M92,104l4,0 0,4 -4,0 0,-4z M96,104l4,0 0,4 -4,0 0,-4z M108,104l4,0 0,4 -4,0 0,-4z M0,108l4,0 0,4 -4,0 0,-4z M24,108l4,0 0,4 -4,0 0,-4z M44,108l4,0 0,4 -4,0 0,-4z M52,108l4,0 0,4 -4,0 0,-4z M60,108l4,0 0,4 -4,0 0,-4z M68,108l4,0 0,4 -4,0 0,-4z M72,108l4,0 0,4 -4,0 0,-4z M80,108l4,0 0,4 -4,0 0,-4z M84,108l4,0 0,4 -4,0 0,-4z M92,108l4,0 0,4 -4,0 0,-4z M96,108l4,0 0,4 -4,0 0,-4z M100,108l4,0 0,4 -4,0 0,-4z M108,108l4,0 0,4 -4,0 0,-4z M0,112l4,0 0,4 -4,0 0,-4z M4,112l4,0 0,4 -4,0 0,-4z M8,112l4,0 0,4 -4,0 0,-4z M12,112l4,0 0,4 -4,0 0,-4z M16,112l4,0 0,4 -4,0 0,-4z M20,112l4,0 0,4 -4,0 0,-4z M24,112l4,0 0,4 -4,0 0,-4z M32,112l4,0 0,4 -4,0 0,-4z M36,112l4,0 0,4 -4,0 0,-4z M40,112l4,0 0,4 -4,0 0,-4z M44,112l4,0 0,4 -4,0 0,-4z M48,112l4,0 0,4 -4,0 0,-4z M60,112l4,0 0,4 -4,0 0,-4z M76,112l4,0 0,4 -4,0 0,-4z M88,112l4,0 0,4 -4,0 0,-4z M100,112l4,0 0,4 -4,0 0,-4z M104,112l4,0 0,4 -4,0 0,-4z " stroke="transparent" fill="black"/></svg></div>
+        <p>In den WLAN-Einstellungen „HyperCrash“ antippen, es gibt <b>kein Passwort</b>. Oder mit der Handy-Kamera den <b>WLAN-QR-Code unten am Auto</b> scannen (dieser Code hier funktioniert genauso).</p>
+      </div>
+      <div class="tip"><b>Android:</b> Kommt die Frage „Dieses Netzwerk hat keinen Internetzugriff. Verbunden bleiben?“, tippe auf <b>Ja</b>. Am besten vorher die mobilen Daten ausschalten.</div>
+    </li>
+    <li>
+      <h3>Einrichtungsseite öffnen</h3>
+      <p>Meist öffnet sie sich von selbst („Im Netzwerk anmelden“). Wenn nicht, im Browser diese Adresse eintippen:</p>
+      <p class="copy"><a class="addr" href="http://192.168.4.1" target="_blank" rel="noopener">http://192.168.4.1</a><button class="cp" type="button" data-copy="http://192.168.4.1">Kopieren</button></p>
+    </li>
+    <li>
+      <h3>WLAN auswählen</h3>
+      <p>Dein WLAN aus der Liste antippen und das <b>Passwort</b> eingeben.</p>
+      <p>Dann <b>Verbinden</b> tippen und auf der Seite bleiben. Nach ein paar Sekunden steht dort „Verbunden“ oder der Grund, warum es nicht geklappt hat.</p>
+    </li>
+    <li>
+      <h3>„Fertig“ tippen</h3>
+      <p>Bei „Verbunden“ zeigt die Seite eine Adresse wie <code>http://192.168.43.17</code>. <b>Benutzt du ein Handy als Hotspot, kopiere oder notiere sie jetzt</b> (siehe Abschnitt Hotspot). Danach „Fertig – Auto neu starten“ tippen. Das Auto startet neu (LED voll an) und spielt die drei Töne. Danach leuchtet die LED nur noch schwach.</p>
+    </li>
+    <li>
+      <h3>Losfahren</h3>
+      <p>Handy wieder mit deinem normalen WLAN verbinden (das passiert meist von selbst) und den <b>QR-Code oben auf dem Auto</b> scannen. Beim ersten Öffnen fragt die App nach einem Namen für das Auto. Fertig!</p>
+      <div class="tip"><b>Update:</b> Beim ersten Start mit Internet (und immer, wenn es eine neue Version gibt) lädt das Auto ein Update. Du hörst dann ein ca. 4 Sekunden langes <b>„Hochfahr-Geräusch“</b>: drei steigende Heultöne, jeder höher als der letzte, danach ein langer fallender. Dann ist es eine Weile still, während die LED voll leuchtet. Das Auto startet von selbst neu und spielt danach die drei Töne. Nicht ausschalten, einfach abwarten. Wird das Update unterbrochen, passiert nichts Schlimmes: das Auto startet mit der alten Version und versucht es beim nächsten Mal wieder.</div>
+    </li>
+  </ol>
+</section>
+
+<section>
+  <h2>Weitere Autos</h2>
+  <p>Einfach einschalten, nachdem das erste Auto fertig ist. Sie fragen die Autos, die schon im WLAN sind, und bekommen die Zugangsdaten automatisch. Nach den drei Tönen den QR-Code oben auf dem jeweiligen Auto scannen.</p>
+  <div class="note"><b>Wichtig:</b> Immer erst <b>ein</b> Auto komplett einrichten. Es gibt immer nur ein Einrichtungs-WLAN, und das bleibt offen, bis du fertig bist. Schaltest du vorher schon weitere Autos ein, öffnen sie kein eigenes, sondern starten alle 30 Sekunden neu. Sobald das erste Auto fertig ist, holen sie sich beim nächsten Neustart automatisch das WLAN. Das ist normal, du musst nichts tun.</div>
+</section>
+
+<section>
+  <h2>Unterwegs ohne WLAN</h2>
+  <p>Ohne Router stellt ein Handy oder ein Auto das WLAN. Welcher Weg passt, hängt davon ab, welches Handy den Hotspot machen soll:</p>
+  <ul class="plain">
+    <li><b>Android-Handy vorhanden:</b> Handy als Hotspot. Das ist der Standardweg: läuft am saubersten und hat kein Auto-Limit.</li>
+    <li><b>Nur iPhones:</b> ein Auto als Hotspot. Im iPhone-Hotspot erreichen andere Handys die Autos nicht (siehe unten).</li>
+  </ul>
+</section>
+
+<section>
+  <h2>Android: Handy als Hotspot</h2>
+  <p>Am Android-Handy unter Einstellungen → Hotspot das Band bzw. die Frequenz auf <b>2,4 GHz</b> stellen. Falls vorhanden, „Hotspot automatisch ausschalten“ deaktivieren. Dann richtest du das erste Auto genau wie oben ein und wählst in Schritt 4 einfach den Hotspot aus.</p>
+
+  <h3 style="margin-top:8px">Das Hotspot-Handy selbst</h3>
+  <p>Auf dem Handy, das den Hotspot macht, funktioniert der QR-Code oben auf dem Auto <b>nicht</b> (die <code>.local</code>-Adresse wird dort nicht gefunden). Öffne stattdessen die Adresse mit Zahlen, die in Schritt 5 angezeigt wurde, im Browser, z. B. <code>http://192.168.43.17</code>.</p>
+
+  <h3 style="margin-top:8px">Später ein zweites Handy dazuholen</h3>
+  <ul class="plain">
+    <li><b>Jedes andere Handy:</b> mit dem Hotspot verbinden (Hotspot-Name und Passwort vom Hotspot-Handy) und dann den QR-Code oben auf seinem Auto scannen. Fertig.</li>
+    <li><b>Das Hotspot-Handy braucht die Adresse eines Autos</b> (vergessen, anderes Auto, oder die Adresse hat sich geändert): Auf einem Handy, das schon in der App ist, oben rechts das <b>Auto-Symbol</b> antippen. Es zeigt „Verbundene Spieler“. Das gewünschte Auto antippen, dann erscheint in der App ein QR-Code mit seiner Adresse. Diesen Code vom Bildschirm mit dem Hotspot-Handy scannen.</li>
+    <li>Ist das Hotspot-Handy schon mit einem Auto in der App, geht es noch einfacher: Auto-Symbol → anderes Auto antippen → <b>„Fahren“</b>.</li>
+  </ul>
+  <div class="tip">Die Zahlen-Adresse kann sich ändern, wenn Hotspot oder Auto neu gestartet werden. Lädt die Adresse nicht mehr, hol dir die aktuelle Adresse wie oben beschrieben.</div>
+</section>
+
+<section>
+  <h2>iPhone: ein Auto als Hotspot</h2>
+  <div class="note"><b>Warum nicht der iPhone-Hotspot?</b> Das iPhone lässt die Geräte in seinem Hotspot offenbar nicht miteinander reden. Dann erreicht nur das Hotspot-iPhone selbst die Autos, alle anderen Handys nicht. Deshalb stellt hier ein Auto das WLAN.</div>
+  <ol class="steps">
+    <li>
+      <h3>Einrichtungsseite öffnen</h3>
+      <p>Ein Auto einschalten und wie oben in den Schritten 1 bis 3 die Einrichtungsseite öffnen (WLAN „HyperCrash“, <a class="addr" href="http://192.168.4.1" target="_blank" rel="noopener">http://192.168.4.1</a>). Verbindet sich das Auto stattdessen mit einem bekannten WLAN, erst das WLAN zurücksetzen (siehe „Anderes WLAN“).</p>
+    </li>
+    <li>
+      <h3>„Auto als Hotspot nutzen“ tippen</h3>
+      <p>Unter der Netzwerkliste steht die Karte „Kein WLAN da?“. Dort auf <b>„Auto als Hotspot nutzen“</b> tippen. Es erscheint eine Seite mit Hinweisen (u. a. mobile Daten aus). Tippe dort <b>„Verstanden – Hotspot starten“</b>. Das Auto startet neu und macht das WLAN <b>„HyperCrash-Hotspot“</b> auf, <b>ohne Passwort</b>. Das gilt nur bis zum nächsten Ausschalten, das Auto merkt sich den Hotspot nicht.</p>
+    </li>
+    <li>
+      <h3>Die anderen Autos einschalten</h3>
+      <p>Sie finden den Hotspot beim Start von selbst und wählen sich ein. Ihr gespeichertes WLAN von zu Hause vergessen sie dabei <b>nicht</b>.</p>
+    </li>
+    <li>
+      <h3>Mobile Daten aus, verbinden, losfahren</h3>
+      <p><b>Zuerst am Handy die mobilen Daten ausschalten.</b> Der Auto-Hotspot hat kein Internet, und mit eingeschalteten mobilen Daten ignoriert das Handy dieses WLAN oder trennt es wieder. Dann mit „HyperCrash-Hotspot“ verbinden und den QR-Code oben auf dem eigenen Auto scannen. Lädt die Seite nicht, die Zahlen-Adresse aus der App nehmen (Auto-Symbol → Auto antippen → QR-Code). Das Hotspot-Auto selbst erreichst du auch unter <a class="addr" href="http://192.168.4.1" target="_blank" rel="noopener">http://192.168.4.1</a>.</p>
+    </li>
+  </ol>
+  <div class="note"><b>Gut zu wissen:</b> Höchstens <b>10 Geräte</b> passen in den Auto-Hotspot, Autos und Handys zusammen, also etwa 5 Autos mit 5 Handys. Es gibt dort kein Internet, also auch keine Updates. Geht das Hotspot-Auto aus, startet es neu oder ist sein Akku leer, ist der Hotspot weg und alle sind offline. Dann die Schritte 1 und 2 wiederholen. Nimm also das Auto mit dem vollsten Akku.</div>
+  <p><b>Zurück zum normalen WLAN:</b> Einfach alle Autos aus- und wieder einschalten. Sie starten ganz normal und verbinden sich mit ihrem gespeicherten WLAN.</p>
+</section>
+
+<section>
+  <h2>Anderes WLAN oder neuer Ort</h2>
+  <p>Ein Auto merkt sich immer nur <b>ein</b> WLAN. Eine neue Einrichtung ersetzt das alte.</p>
+  <ul class="plain">
+    <li><b>Altes WLAN ist nicht in der Nähe:</b> Das Auto merkt das nach etwa 15 Sekunden. Ist schon ein anderes Auto im neuen WLAN, übernimmt es dessen Daten. Sonst öffnet es das Einrichtungs-WLAN und du machst die Schritte von oben.</li>
+    <li><b>Altes WLAN ist noch erreichbar, du willst trotzdem wechseln:</b> WLAN zurücksetzen. Auto auf den Kopf legen, einschalten und liegen lassen. Nach dem Start piept es zweimal zum Herunterzählen, dann kommt ein langes, fallendes Geräusch. Das Auto vergisst das WLAN, startet neu und öffnet das Einrichtungs-WLAN. Name und Farbe bleiben erhalten. <button type="button" class="play" data-snd="reset">▶ Anhören</button></li>
+  </ul>
+</section>
+
+<section>
+  <h2>Wenn etwas nicht klappt</h2>
+  <div class="faq">
+    <details>
+      <summary>Ich sehe kein WLAN „HyperCrash“</summary>
+      <div>
+        <p>Bis zu 20 Sekunden nach dem Einschalten warten und die WLAN-Liste neu laden.</p>
+        <p>Kamen die drei Töne? Dann ist das Auto schon in einem WLAN, das es kennt. Zum Wechseln das WLAN zurücksetzen (siehe „Anderes WLAN“).</p>
+        <p>LED wird langsam hell und dunkel? Das Auto hängt am Ladekabel. Kabel ab.</p>
+      </div>
+    </details>
+    <details>
+      <summary>Die Einrichtungsseite öffnet sich nicht (Android)</summary>
+      <div>
+        <p>Mobile Daten ausschalten und <a class="addr" href="http://192.168.4.1" target="_blank" rel="noopener">http://192.168.4.1</a> im Browser öffnen. Wichtig: <b>http</b>, nicht https.</p>
+        <p>Einstellungen → Netzwerk → <b>Privates DNS</b> auf „Automatisch“ oder „Aus“ stellen. Ein fester DNS-Anbieter verhindert, dass die Seite aufgeht.</p>
+        <p>Hat das Handy sich „HyperCrash“ früher schon als „kein Internet“ gemerkt: Netzwerk in den WLAN-Einstellungen <b>entfernen bzw. vergessen</b> und neu verbinden.</p>
+      </div>
+    </details>
+    <details>
+      <summary>Die Einrichtungsseite öffnet sich nicht oder schließt sich (iPhone)</summary>
+      <div>
+        <p>Einstellungen → WLAN → „HyperCrash“ antippen, dann öffnet sich die Seite erneut. Oder in Safari <a class="addr" href="http://192.168.4.1" target="_blank" rel="noopener">http://192.168.4.1</a> eingeben.</p>
+        <p>Fragt das iPhone beim Schließen nach, „Ohne Internet verwenden“ wählen.</p>
+      </div>
+    </details>
+    <details>
+      <summary>Nach „Verbinden“ ist die Seite weg oder lädt ewig</summary>
+      <div>
+        <p>Das kann passieren, weil das Auto kurz den Funkkanal wechselt. Handy wieder mit „HyperCrash“ verbinden und <a class="addr" href="http://192.168.4.1" target="_blank" rel="noopener">http://192.168.4.1</a> öffnen, die Seite zeigt dann das Ergebnis.</p>
+      </div>
+    </details>
+    <details>
+      <summary>„Passwort falsch“, „Netzwerk nicht gefunden“ oder „Verbindung abgelehnt“</summary>
+      <div>
+        <p>Passwort genau prüfen (Groß- und Kleinschreibung) und mit „Nochmal versuchen“ neu eingeben.</p>
+        <p>Das Auto kann nur <b>2,4-GHz-WLAN</b>. Reine 5-GHz-Netze und Hotspots ohne „Kompatibilität maximieren“ tauchen nicht auf oder schlagen fehl.</p>
+        <p>WLANs mit Anmeldeseite (Hotel, Zug, Gäste-WLAN mit Login) funktionieren nicht. Dann lieber einen Handy-Hotspot nehmen.</p>
+      </div>
+    </details>
+    <details>
+      <summary>Der QR-Code oben auf dem Auto öffnet nichts</summary>
+      <div>
+        <p>Hat das Auto die drei Töne gespielt? Ohne sie ist es noch nicht bereit.</p>
+        <p>Ist das Handy im <b>selben WLAN</b> wie das Auto (nicht mehr in „HyperCrash“, keine mobilen Daten)?</p>
+        <p>Ist das Handy selbst der Hotspot? Dann die Zahlen-Adresse benutzen, siehe Abschnitt Hotspot.</p>
+      </div>
+    </details>
+    <details>
+      <summary>Im iPhone-Hotspot erreicht nur das Hotspot-iPhone das Auto</summary>
+      <div>
+        <p>Das liegt am iPhone: Es lässt die Geräte in seinem Hotspot offenbar nicht miteinander reden. Daran lässt sich am Handy nichts einstellen.</p>
+        <p>Lösung: <b>ein Auto als Hotspot</b> nutzen (siehe „iPhone: ein Auto als Hotspot“), ein Android-Handy als Hotspot nehmen oder einen Router.</p>
+      </div>
+    </details>
+    <details>
+      <summary>Ein zweites Auto bekommt das WLAN nicht automatisch</summary>
+      <div>
+        <p>Das erste Auto muss eingeschaltet und schon fertig gestartet sein (drei Töne). Dann das zweite Auto aus- und wieder einschalten.</p>
+        <p>Klappt es weiter nicht, das zweite Auto genauso über das Einrichtungs-WLAN einrichten wie das erste.</p>
+      </div>
+    </details>
+    <details>
+      <summary>Das Auto piept alle zwei Sekunden</summary>
+      <div>
+        <p>Es stand eine Minute ohne Steuerung herum und möchte gefunden werden. Einmal kurz fahren, dann ist Ruhe.</p>
+        <button type="button" class="play" data-snd="idle">▶ Anhören</button>
+      </div>
+    </details>
+  </div>
+</section>
+
+<footer>Merksatz: Ein Auto einrichten, die anderen folgen von allein. Hotspot-Handy nutzt die Zahlen-Adresse, alle anderen den QR-Code oben auf dem Auto. Der QR-Code unten am Auto ist nur fürs Einrichtungs-WLAN.</footer>
+</div>
+
+<script>
+(function () {
+  document.querySelectorAll("button.cp").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var t = b.getAttribute("data-copy");
+      var done = function () { b.textContent = "Kopiert"; setTimeout(function () { b.textContent = "Kopieren"; }, 1500); };
+      var fallback = function () {
+        var r = document.createRange(); r.selectNodeContents(b.previousElementSibling);
+        var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, fallback);
+      else fallback();
+    });
+  });
+})();
+</script>
+<style>
+.play { display: flex; width: fit-content; align-items: center; gap: 6px; margin-top: 6px; font: 600 .9rem var(--body); color: var(--accent); background: var(--accent-soft); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; min-height: 34px; cursor: pointer; }
+.play:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.play.on { background: var(--accent); color: var(--surface); }
+.hint { color: var(--muted); font-size: .95rem; margin: 0 0 8px; }
+</style>
+<script>
+/* Car sounds rebuilt from the firmware's Beeper calls (square wave like ledcWriteTone, same frequencies and timings) */
+(function () {
+  var ac = null, cur = null;
+  function tone(o, t, f) { o.frequency.setValueAtTime(f, t); }
+  function sweep(o, t, f0, f1, step, ms) { var n = 0, f = f0; while (f0 < f1 ? f < f1 : f > f1) { f += f0 < f1 ? step : -step; tone(o, t + n * ms / 1000, f); n++; } return t + n * ms / 1000; }
+  function beep(o, g, t, f, ms) { tone(o, t, f); g.gain.setValueAtTime(0.05, t); g.gain.setValueAtTime(0, t + ms / 1000); return t + ms / 1000; }
+  var S = {
+    // main.cpp: 5000, 4000, 6000 Hz, 300 ms each, back to back
+    ready: function (o, g, t) { t = beep(o, g, t, 5000, 300); t = beep(o, g, t, 4000, 300); return beep(o, g, t, 6000, 300); },
+    // NetworkSetupUtils.h checkForFirmwareUpdate(): three rising sweeps, one long falling (50 Hz steps, 10 ms)
+    update: function (o, g, t) { g.gain.setValueAtTime(0.05, t); t = sweep(o, t, 200, 4000, 50, 10); t = sweep(o, t, 1000, 6000, 50, 10); t = sweep(o, t, 2000, 7000, 50, 10); t = sweep(o, t, 7000, 200, 50, 10); g.gain.setValueAtTime(0, t); return t; },
+    // Charging.cpp: one 2000 Hz beep on entering charging mode
+    charge: function (o, g, t) { return beep(o, g, t, 2000, 200); },
+    // Car.cpp: 1000 Hz, 80 ms every 2 s while left standing
+    idle: function (o, g, t) { for (var i = 0; i < 3; i++) beep(o, g, t + i * 2, 1000, 80); return t + 4.1; },
+    // Car.cpp upside-down check: countdown 1200 / 900 Hz at 1 s and 2 s, then three falling sweeps at 3 s (50 Hz steps, 8 ms)
+    reset: function (o, g, t) { beep(o, g, t, 1200, 150); beep(o, g, t + 1, 900, 150); t += 2; g.gain.setValueAtTime(0.05, t); t = sweep(o, t, 6000, 500, 50, 8); t = sweep(o, t, 5000, 400, 50, 8); t = sweep(o, t, 4000, 300, 50, 8); g.gain.setValueAtTime(0, t); return t; }
+  };
+  function stop() { if (cur) { try { cur.o.stop(); } catch (e) {} cur.b.classList.remove("on"); cur = null; } }
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("button[data-snd]"); if (!b) return;
+    var mine = cur && cur.b === b; stop(); if (mine) return;
+    try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); if (ac.resume) ac.resume(); } catch (err) { return; }
+    var o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime + 0.05;
+    o.type = "square"; g.gain.setValueAtTime(0, ac.currentTime); o.connect(g); g.connect(ac.destination);
+    var end = S[b.getAttribute("data-snd")](o, g, t);
+    o.start(t); o.stop(end + 0.05); b.classList.add("on");
+    var me = cur = { o: o, b: b }; o.onended = function () { if (cur === me) stop(); };
+  });
+})();
+</script>
+</body>
+</html>

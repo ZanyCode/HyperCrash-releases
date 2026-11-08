@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>HyperCrash Hilfe-Assistent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: one readable column, numbered walkthrough, LED signal legend, fold-out troubleshooting */
+:root {
+  --bg: #f3f5f8;
+  --surface: #ffffff;
+  --fg: #16202c;
+  --muted: #586473;
+  --line: #d9dfe7;
+  --accent: #1565c0;
+  --accent-soft: #e3edf9;
+  --warn: #a35a00;
+  --warn-soft: #fff3e0;
+  --led: #2f7cf6;
+  --led-off: #c7d0db;
+  --display: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+  --body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f141b; --surface: #17202b; --fg: #e6ebf1; --muted: #9aa7b6; --line: #29364a;
+    --accent: #6aa8ff; --accent-soft: #1b2b44; --warn: #ffb74d; --warn-soft: #2e2416;
+    --led: #6aa8ff; --led-off: #33404f; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f141b; --surface: #17202b; --fg: #e6ebf1; --muted: #9aa7b6; --line: #29364a;
+  --accent: #6aa8ff; --accent-soft: #1b2b44; --warn: #ffb74d; --warn-soft: #2e2416;
+  --led: #6aa8ff; --led-off: #33404f; color-scheme: dark;
+}
+body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 17px; line-height: 1.55; }
+.wrap { max-width: 720px; margin: 0 auto; padding-block: 28px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 40px; }
+h1, h2, h3 { font-family: var(--display); line-height: 1.1; text-wrap: balance; margin: 0; }
+h1 { font-size: 2.6rem; letter-spacing: .01em; }
+h2 { font-size: 1.8rem; }
+h3 { font-size: 1.25rem; }
+p { margin: 0; }
+section { display: flex; flex-direction: column; gap: 14px; }
+.eyebrow { font-family: var(--display); font-weight: 600; text-transform: uppercase; letter-spacing: .12em; color: var(--accent); font-size: .9rem; }
+.lead { color: var(--muted); font-size: 1.08rem; }
+a.addr { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+code, .addr { font-family: var(--mono); font-size: .92em; background: var(--accent-soft); padding: 1px 6px; border-radius: 4px; word-break: break-all; }
+ul.plain { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 4px; }
+.need { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; }
+
+/* LED legend */
+.signals { display: grid; grid-template-columns: 1fr; gap: 0; border-top: 1px solid var(--line); }
+.sig { display: grid; grid-template-columns: 48px 1fr; gap: 14px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.sig b { display: block; }
+.sig span { color: var(--muted); font-size: .95rem; }
+.led { width: 22px; height: 22px; border-radius: 50%; background: var(--led-off); justify-self: center; position: relative; }
+.led.on { background: var(--led); box-shadow: 0 0 12px var(--led); }
+.led.dim { background: color-mix(in srgb, var(--led) 35%, var(--led-off)); box-shadow: 0 0 4px color-mix(in srgb, var(--led) 40%, transparent); }
+.led.blink { animation: blink 500ms steps(1) infinite; }
+.led.breathe { animation: breathe 3s ease-in-out infinite; }
+.led.beeps::after { content: "♪"; position: absolute; left: 26px; top: -2px; color: var(--muted); font-size: 14px; }
+@keyframes blink { 0% { background: var(--led); box-shadow: 0 0 12px var(--led); } 10% { background: var(--led-off); box-shadow: none; } }
+@keyframes breathe { 0%,100% { background: var(--led-off); box-shadow: none; } 50% { background: var(--led); box-shadow: 0 0 12px var(--led); } }
+@media (prefers-reduced-motion: reduce) { .led.blink, .led.breathe { animation: none; background: var(--led); } }
+
+/* Steps */
+ol.steps { list-style: none; margin: 0; padding: 0; counter-reset: s; display: flex; flex-direction: column; gap: 0; }
+ol.steps > li { counter-increment: s; position: relative; padding: 0 0 26px 52px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+ol.steps > li::before { content: counter(s); position: absolute; left: 0; top: -2px; width: 34px; height: 34px; border-radius: 50%;
+  background: var(--accent); color: var(--surface); font-family: var(--display); font-weight: 700; font-size: 1.2rem;
+  display: grid; place-items: center; }
+ol.steps > li::after { content: ""; position: absolute; left: 16px; top: 38px; bottom: 6px; width: 2px; background: var(--line); }
+ol.steps > li:last-child::after { display: none; }
+ol.steps > li:last-child { padding-bottom: 0; }
+
+.qr-row { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; }
+.qr { background: #ffffff; padding: 8px; border-radius: 8px; width: 132px; height: 132px; border: 1px solid var(--line); }
+.qr svg { width: 100%; height: 100%; display: block; }
+.qr-row p { flex: 1 1 220px; min-width: 0; color: var(--muted); font-size: .95rem; }
+
+.copy { display: inline-flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+button.cp { font: 600 .85rem var(--body); border: 1px solid var(--accent); color: var(--accent); background: transparent; border-radius: 6px; padding: 3px 10px; cursor: pointer; }
+button.cp:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.note { border-left: 3px solid var(--warn); background: var(--warn-soft); padding: 10px 14px; border-radius: 0 8px 8px 0; font-size: .97rem; }
+.note b { color: var(--warn); }
+.tip { border-left: 3px solid var(--accent); background: var(--accent-soft); padding: 10px 14px; border-radius: 0 8px 8px 0; font-size: .97rem; }
+
+/* Troubleshooting */
+.faq { display: flex; flex-direction: column; border-top: 1px solid var(--line); }
+details { border-bottom: 1px solid var(--line); }
+summary { cursor: pointer; padding: 13px 4px; font-weight: 600; list-style: none; display: flex; gap: 10px; align-items: baseline; }
+summary::-webkit-details-marker { display: none; }
+summary::before { content: "+"; font-family: var(--mono); color: var(--accent); width: 1em; flex: none; }
+details[open] summary::before { content: "−"; }
+details > div { padding: 0 4px 16px 30px; display: flex; flex-direction: column; gap: 8px; color: var(--fg); }
+footer { color: var(--muted); font-size: .9rem; border-top: 1px solid var(--line); padding-top: 16px; }
+@media (max-width: 480px) { h1 { font-size: 2.1rem; } h2 { font-size: 1.55rem; } ol.steps > li { padding-left: 46px; } }
+</style>
+</head>
+<body>
+<style>
+/* Wizard shell: sticky top bar (back, progress, start), one card per step, big answer buttons */
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line);
+  padding-block: 10px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+.bar-in { max-width: 640px; margin: 0 auto; display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: center; }
+.navbtn { font: 600 .95rem var(--body); color: var(--accent); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px; cursor: pointer; min-height: 38px; }
+.navbtn:disabled { visibility: hidden; }
+.prog { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.prog small { display: flex; justify-content: space-between; gap: 8px; }
+.prog small span:first-child { overflow: hidden; text-overflow: ellipsis; }
+.prog small span:last-child { flex: none; color: var(--accent); }
+.prog small { font-family: var(--display); font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-size: .8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.track { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.fill { height: 100%; width: 0; background: var(--accent); border-radius: 3px; transition: width .3s ease; }
+main.stage { overflow-x: clip; max-width: 640px; margin: 0 auto; padding-block: 24px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.card { display: flex; flex-direction: column; gap: 16px; }
+.card.enter { animation: slidein .22s ease-out; }
+.card.enter.back { animation-name: slideback; }
+@keyframes slidein { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
+@keyframes slideback { from { opacity: 0; transform: translateX(-24px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .card.enter { animation: none; } .fill { transition: none; } }
+.card h1 { font-size: 2rem; }
+.card .body { display: flex; flex-direction: column; gap: 12px; }
+.ask { font-family: var(--display); font-weight: 700; font-size: 1.25rem; margin-top: 4px; }
+.choices { display: flex; flex-direction: column; gap: 10px; }
+.choice { display: grid; grid-template-columns: auto 1fr auto; gap: 2px 14px; align-items: center; width: 100%; text-align: left; font: inherit; color: var(--fg); cursor: pointer;
+  background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; min-height: 64px; }
+.choice:hover { border-color: var(--accent); }
+.choice:focus-visible, .navbtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.choice .ic { grid-row: 1 / span 2; font-size: 1.6rem; width: 1.6em; text-align: center; }
+.choice b { font-family: var(--display); font-size: 1.25rem; line-height: 1.15; }
+.choice b:last-child { grid-row: 1 / span 2; }
+.choice span.sub { grid-column: 2; color: var(--muted); font-size: .93rem; }
+.choice::after { content: "›"; grid-column: 3; grid-row: 1 / span 2; font-size: 1.7rem; color: var(--accent); }
+.choice.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.choice.primary span.sub, .choice.primary::after { color: var(--surface); opacity: .85; }
+.done { text-align: center; font-size: 3rem; }
+.big-ic { font-size: 2.4rem; }
+.qr { background: #ffffff; padding: 8px; border-radius: 8px; width: 148px; height: 148px; border: 1px solid var(--line); flex: none; }
+.qr svg { width: 100%; height: 100%; display: block; }
+.card a { color: var(--accent); }
+@media (max-width: 480px) { .card h1 { font-size: 1.7rem; } }
+</style>
+
+<div class="bar">
+  <div class="bar-in">
+    <button class="navbtn" id="back" type="button">‹ Zurück</button>
+    <div class="prog" id="prog"><small id="prog-label">HyperCrash Assistent</small><div class="track"><div class="fill" id="fill"></div></div></div>
+    <button class="navbtn" id="home" type="button">Start</button>
+  </div>
+</div>
+<main class="stage"><div id="card" class="card" aria-live="polite"></div></main>
+
+<style>
+.play { display: flex; width: fit-content; align-items: center; gap: 6px; margin-top: 6px; font: 600 .9rem var(--body); color: var(--accent); background: var(--accent-soft); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; min-height: 34px; cursor: pointer; }
+.play:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.play.on { background: var(--accent); color: var(--surface); }
+.hint { color: var(--muted); font-size: .95rem; margin: 0 0 8px; }
+</style>
+<script>
+/* Car sounds rebuilt from the firmware's Beeper calls (square wave like ledcWriteTone, same frequencies and timings) */
+(function () {
+  var ac = null, cur = null;
+  function tone(o, t, f) { o.frequency.setValueAtTime(f, t); }
+  function sweep(o, t, f0, f1, step, ms) { var n = 0, f = f0; while (f0 < f1 ? f < f1 : f > f1) { f += f0 < f1 ? step : -step; tone(o, t + n * ms / 1000, f); n++; } return t + n * ms / 1000; }
+  function beep(o, g, t, f, ms) { tone(o, t, f); g.gain.setValueAtTime(0.05, t); g.gain.setValueAtTime(0, t + ms / 1000); return t + ms / 1000; }
+  var S = {
+    // main.cpp: 5000, 4000, 6000 Hz, 300 ms each, back to back
+    ready: function (o, g, t) { t = beep(o, g, t, 5000, 300); t = beep(o, g, t, 4000, 300); return beep(o, g, t, 6000, 300); },
+    // NetworkSetupUtils.h checkForFirmwareUpdate(): three rising sweeps, one long falling (50 Hz steps, 10 ms)
+    update: function (o, g, t) { g.gain.setValueAtTime(0.05, t); t = sweep(o, t, 200, 4000, 50, 10); t = sweep(o, t, 1000, 6000, 50, 10); t = sweep(o, t, 2000, 7000, 50, 10); t = sweep(o, t, 7000, 200, 50, 10); g.gain.setValueAtTime(0, t); return t; },
+    // Charging.cpp: one 2000 Hz beep on entering charging mode
+    charge: function (o, g, t) { return beep(o, g, t, 2000, 200); },
+    // Car.cpp: 1000 Hz, 80 ms every 2 s while left standing
+    idle: function (o, g, t) { for (var i = 0; i < 3; i++) beep(o, g, t + i * 2, 1000, 80); return t + 4.1; },
+    // Car.cpp upside-down check: countdown 1200 / 900 Hz at 1 s and 2 s, then three falling sweeps at 3 s (50 Hz steps, 8 ms)
+    reset: function (o, g, t) { beep(o, g, t, 1200, 150); beep(o, g, t + 1, 900, 150); t += 2; g.gain.setValueAtTime(0.05, t); t = sweep(o, t, 6000, 500, 50, 8); t = sweep(o, t, 5000, 400, 50, 8); t = sweep(o, t, 4000, 300, 50, 8); g.gain.setValueAtTime(0, t); return t; }
+  };
+  function stop() { if (cur) { try { cur.o.stop(); } catch (e) {} cur.b.classList.remove("on"); cur = null; } }
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest && e.target.closest("button[data-snd]"); if (!b) return;
+    var mine = cur && cur.b === b; stop(); if (mine) return;
+    try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); if (ac.resume) ac.resume(); } catch (err) { return; }
+    var o = ac.createOscillator(), g = ac.createGain(), t = ac.currentTime + 0.05;
+    o.type = "square"; g.gain.setValueAtTime(0, ac.currentTime); o.connect(g); g.connect(ac.destination);
+    var end = S[b.getAttribute("data-snd")](o, g, t);
+    o.start(t); o.stop(end + 0.05); b.classList.add("on");
+    var me = cur = { o: o, b: b }; o.onended = function () { if (cur === me) stop(); };
+  });
+})();
+</script>
+
+<template id="wifi-qr"><svg version="1.1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 116 116"  preserveAspectRatio="xMinYMin meet"><rect width="100%" height="100%" fill="white" cx="0" cy="0"/><path d="M0,0l4,0 0,4 -4,0 0,-4z M4,0l4,0 0,4 -4,0 0,-4z M8,0l4,0 0,4 -4,0 0,-4z M12,0l4,0 0,4 -4,0 0,-4z M16,0l4,0 0,4 -4,0 0,-4z M20,0l4,0 0,4 -4,0 0,-4z M24,0l4,0 0,4 -4,0 0,-4z M40,0l4,0 0,4 -4,0 0,-4z M52,0l4,0 0,4 -4,0 0,-4z M56,0l4,0 0,4 -4,0 0,-4z M60,0l4,0 0,4 -4,0 0,-4z M76,0l4,0 0,4 -4,0 0,-4z M80,0l4,0 0,4 -4,0 0,-4z M88,0l4,0 0,4 -4,0 0,-4z M92,0l4,0 0,4 -4,0 0,-4z M96,0l4,0 0,4 -4,0 0,-4z M100,0l4,0 0,4 -4,0 0,-4z M104,0l4,0 0,4 -4,0 0,-4z M108,0l4,0 0,4 -4,0 0,-4z M112,0l4,0 0,4 -4,0 0,-4z M0,4l4,0 0,4 -4,0 0,-4z M24,4l4,0 0,4 -4,0 0,-4z M40,4l4,0 0,4 -4,0 0,-4z M52,4l4,0 0,4 -4,0 0,-4z M56,4l4,0 0,4 -4,0 0,-4z M60,4l4,0 0,4 -4,0 0,-4z M64,4l4,0 0,4 -4,0 0,-4z M72,4l4,0 0,4 -4,0 0,-4z M80,4l4,0 0,4 -4,0 0,-4z M88,4l4,0 0,4 -4,0 0,-4z M112,4l4,0 0,4 -4,0 0,-4z M0,8l4,0 0,4 -4,0 0,-4z M8,8l4,0 0,4 -4,0 0,-4z M12,8l4,0 0,4 -4,0 0,-4z M16,8l4,0 0,4 -4,0 0,-4z M24,8l4,0 0,4 -4,0 0,-4z M32,8l4,0 0,4 -4,0 0,-4z M40,8l4,0 0,4 -4,0 0,-4z M52,8l4,0 0,4 -4,0 0,-4z M60,8l4,0 0,4 -4,0 0,-4z M72,8l4,0 0,4 -4,0 0,-4z M76,8l4,0 0,4 -4,0 0,-4z M80,8l4,0 0,4 -4,0 0,-4z M88,8l4,0 0,4 -4,0 0,-4z M96,8l4,0 0,4 -4,0 0,-4z M100,8l4,0 0,4 -4,0 0,-4z M104,8l4,0 0,4 -4,0 0,-4z M112,8l4,0 0,4 -4,0 0,-4z M0,12l4,0 0,4 -4,0 0,-4z M8,12l4,0 0,4 -4,0 0,-4z M12,12l4,0 0,4 -4,0 0,-4z M16,12l4,0 0,4 -4,0 0,-4z M24,12l4,0 0,4 -4,0 0,-4z M32,12l4,0 0,4 -4,0 0,-4z M40,12l4,0 0,4 -4,0 0,-4z M56,12l4,0 0,4 -4,0 0,-4z M60,12l4,0 0,4 -4,0 0,-4z M68,12l4,0 0,4 -4,0 0,-4z M76,12l4,0 0,4 -4,0 0,-4z M88,12l4,0 0,4 -4,0 0,-4z M96,12l4,0 0,4 -4,0 0,-4z M100,12l4,0 0,4 -4,0 0,-4z M104,12l4,0 0,4 -4,0 0,-4z M112,12l4,0 0,4 -4,0 0,-4z M0,16l4,0 0,4 -4,0 0,-4z M8,16l4,0 0,4 -4,0 0,-4z M12,16l4,0 0,4 -4,0 0,-4z M16,16l4,0 0,4 -4,0 0,-4z M24,16l4,0 0,4 -4,0 0,-4z M32,16l4,0 0,4 -4,0 0,-4z M40,16l4,0 0,4 -4,0 0,-4z M60,16l4,0 0,4 -4,0 0,-4z M64,16l4,0 0,4 -4,0 0,-4z M72,16l4,0 0,4 -4,0 0,-4z M76,16l4,0 0,4 -4,0 0,-4z M80,16l4,0 0,4 -4,0 0,-4z M88,16l4,0 0,4 -4,0 0,-4z M96,16l4,0 0,4 -4,0 0,-4z M100,16l4,0 0,4 -4,0 0,-4z M104,16l4,0 0,4 -4,0 0,-4z M112,16l4,0 0,4 -4,0 0,-4z M0,20l4,0 0,4 -4,0 0,-4z M24,20l4,0 0,4 -4,0 0,-4z M32,20l4,0 0,4 -4,0 0,-4z M40,20l4,0 0,4 -4,0 0,-4z M72,20l4,0 0,4 -4,0 0,-4z M88,20l4,0 0,4 -4,0 0,-4z M112,20l4,0 0,4 -4,0 0,-4z M0,24l4,0 0,4 -4,0 0,-4z M4,24l4,0 0,4 -4,0 0,-4z M8,24l4,0 0,4 -4,0 0,-4z M12,24l4,0 0,4 -4,0 0,-4z M16,24l4,0 0,4 -4,0 0,-4z M20,24l4,0 0,4 -4,0 0,-4z M24,24l4,0 0,4 -4,0 0,-4z M32,24l4,0 0,4 -4,0 0,-4z M40,24l4,0 0,4 -4,0 0,-4z M48,24l4,0 0,4 -4,0 0,-4z M56,24l4,0 0,4 -4,0 0,-4z M64,24l4,0 0,4 -4,0 0,-4z M72,24l4,0 0,4 -4,0 0,-4z M80,24l4,0 0,4 -4,0 0,-4z M88,24l4,0 0,4 -4,0 0,-4z M92,24l4,0 0,4 -4,0 0,-4z M96,24l4,0 0,4 -4,0 0,-4z M100,24l4,0 0,4 -4,0 0,-4z M104,24l4,0 0,4 -4,0 0,-4z M108,24l4,0 0,4 -4,0 0,-4z M112,24l4,0 0,4 -4,0 0,-4z M32,28l4,0 0,4 -4,0 0,-4z M40,28l4,0 0,4 -4,0 0,-4z M44,28l4,0 0,4 -4,0 0,-4z M56,28l4,0 0,4 -4,0 0,-4z M64,28l4,0 0,4 -4,0 0,-4z M76,28l4,0 0,4 -4,0 0,-4z M80,28l4,0 0,4 -4,0 0,-4z M0,32l4,0 0,4 -4,0 0,-4z M8,32l4,0 0,4 -4,0 0,-4z M12,32l4,0 0,4 -4,0 0,-4z M16,32l4,0 0,4 -4,0 0,-4z M20,32l4,0 0,4 -4,0 0,-4z M24,32l4,0 0,4 -4,0 0,-4z M36,32l4,0 0,4 -4,0 0,-4z M44,32l4,0 0,4 -4,0 0,-4z M48,32l4,0 0,4 -4,0 0,-4z M64,32l4,0 0,4 -4,0 0,-4z M68,32l4,0 0,4 -4,0 0,-4z M76,32l4,0 0,4 -4,0 0,-4z M88,32l4,0 0,4 -4,0 0,-4z M92,32l4,0 0,4 -4,0 0,-4z M96,32l4,0 0,4 -4,0 0,-4z M100,32l4,0 0,4 -4,0 0,-4z M104,32l4,0 0,4 -4,0 0,-4z M0,36l4,0 0,4 -4,0 0,-4z M4,36l4,0 0,4 -4,0 0,-4z M8,36l4,0 0,4 -4,0 0,-4z M12,36l4,0 0,4 -4,0 0,-4z M16,36l4,0 0,4 -4,0 0,-4z M28,36l4,0 0,4 -4,0 0,-4z M32,36l4,0 0,4 -4,0 0,-4z M40,36l4,0 0,4 -4,0 0,-4z M48,36l4,0 0,4 -4,0 0,-4z M52,36l4,0 0,4 -4,0 0,-4z M56,36l4,0 0,4 -4,0 0,-4z M60,36l4,0 0,4 -4,0 0,-4z M76,36l4,0 0,4 -4,0 0,-4z M80,36l4,0 0,4 -4,0 0,-4z M84,36l4,0 0,4 -4,0 0,-4z M92,36l4,0 0,4 -4,0 0,-4z M96,36l4,0 0,4 -4,0 0,-4z M104,36l4,0 0,4 -4,0 0,-4z M108,36l4,0 0,4 -4,0 0,-4z M12,40l4,0 0,4 -4,0 0,-4z M16,40l4,0 0,4 -4,0 0,-4z M24,40l4,0 0,4 -4,0 0,-4z M28,40l4,0 0,4 -4,0 0,-4z M36,40l4,0 0,4 -4,0 0,-4z M52,40l4,0 0,4 -4,0 0,-4z M56,40l4,0 0,4 -4,0 0,-4z M60,40l4,0 0,4 -4,0 0,-4z M64,40l4,0 0,4 -4,0 0,-4z M68,40l4,0 0,4 -4,0 0,-4z M72,40l4,0 0,4 -4,0 0,-4z M84,40l4,0 0,4 -4,0 0,-4z M100,40l4,0 0,4 -4,0 0,-4z M0,44l4,0 0,4 -4,0 0,-4z M20,44l4,0 0,4 -4,0 0,-4z M28,44l4,0 0,4 -4,0 0,-4z M40,44l4,0 0,4 -4,0 0,-4z M44,44l4,0 0,4 -4,0 0,-4z M48,44l4,0 0,4 -4,0 0,-4z M52,44l4,0 0,4 -4,0 0,-4z M60,44l4,0 0,4 -4,0 0,-4z M76,44l4,0 0,4 -4,0 0,-4z M88,44l4,0 0,4 -4,0 0,-4z M96,44l4,0 0,4 -4,0 0,-4z M108,44l4,0 0,4 -4,0 0,-4z M112,44l4,0 0,4 -4,0 0,-4z M0,48l4,0 0,4 -4,0 0,-4z M8,48l4,0 0,4 -4,0 0,-4z M16,48l4,0 0,4 -4,0 0,-4z M24,48l4,0 0,4 -4,0 0,-4z M32,48l4,0 0,4 -4,0 0,-4z M40,48l4,0 0,4 -4,0 0,-4z M44,48l4,0 0,4 -4,0 0,-4z M56,48l4,0 0,4 -4,0 0,-4z M60,48l4,0 0,4 -4,0 0,-4z M68,48l4,0 0,4 -4,0 0,-4z M76,48l4,0 0,4 -4,0 0,-4z M80,48l4,0 0,4 -4,0 0,-4z M92,48l4,0 0,4 -4,0 0,-4z M100,48l4,0 0,4 -4,0 0,-4z M104,48l4,0 0,4 -4,0 0,-4z M0,52l4,0 0,4 -4,0 0,-4z M8,52l4,0 0,4 -4,0 0,-4z M16,52l4,0 0,4 -4,0 0,-4z M20,52l4,0 0,4 -4,0 0,-4z M32,52l4,0 0,4 -4,0 0,-4z M36,52l4,0 0,4 -4,0 0,-4z M44,52l4,0 0,4 -4,0 0,-4z M48,52l4,0 0,4 -4,0 0,-4z M60,52l4,0 0,4 -4,0 0,-4z M64,52l4,0 0,4 -4,0 0,-4z M76,52l4,0 0,4 -4,0 0,-4z M88,52l4,0 0,4 -4,0 0,-4z M92,52l4,0 0,4 -4,0 0,-4z M96,52l4,0 0,4 -4,0 0,-4z M104,52l4,0 0,4 -4,0 0,-4z M108,52l4,0 0,4 -4,0 0,-4z M0,56l4,0 0,4 -4,0 0,-4z M8,56l4,0 0,4 -4,0 0,-4z M12,56l4,0 0,4 -4,0 0,-4z M16,56l4,0 0,4 -4,0 0,-4z M20,56l4,0 0,4 -4,0 0,-4z M24,56l4,0 0,4 -4,0 0,-4z M28,56l4,0 0,4 -4,0 0,-4z M36,56l4,0 0,4 -4,0 0,-4z M40,56l4,0 0,4 -4,0 0,-4z M44,56l4,0 0,4 -4,0 0,-4z M68,56l4,0 0,4 -4,0 0,-4z M72,56l4,0 0,4 -4,0 0,-4z M84,56l4,0 0,4 -4,0 0,-4z M92,56l4,0 0,4 -4,0 0,-4z M96,56l4,0 0,4 -4,0 0,-4z M104,56l4,0 0,4 -4,0 0,-4z M0,60l4,0 0,4 -4,0 0,-4z M12,60l4,0 0,4 -4,0 0,-4z M16,60l4,0 0,4 -4,0 0,-4z M28,60l4,0 0,4 -4,0 0,-4z M36,60l4,0 0,4 -4,0 0,-4z M48,60l4,0 0,4 -4,0 0,-4z M56,60l4,0 0,4 -4,0 0,-4z M64,60l4,0 0,4 -4,0 0,-4z M80,60l4,0 0,4 -4,0 0,-4z M84,60l4,0 0,4 -4,0 0,-4z M88,60l4,0 0,4 -4,0 0,-4z M92,60l4,0 0,4 -4,0 0,-4z M96,60l4,0 0,4 -4,0 0,-4z M100,60l4,0 0,4 -4,0 0,-4z M8,64l4,0 0,4 -4,0 0,-4z M24,64l4,0 0,4 -4,0 0,-4z M28,64l4,0 0,4 -4,0 0,-4z M36,64l4,0 0,4 -4,0 0,-4z M64,64l4,0 0,4 -4,0 0,-4z M68,64l4,0 0,4 -4,0 0,-4z M72,64l4,0 0,4 -4,0 0,-4z M80,64l4,0 0,4 -4,0 0,-4z M100,64l4,0 0,4 -4,0 0,-4z M108,64l4,0 0,4 -4,0 0,-4z M112,64l4,0 0,4 -4,0 0,-4z M0,68l4,0 0,4 -4,0 0,-4z M12,68l4,0 0,4 -4,0 0,-4z M20,68l4,0 0,4 -4,0 0,-4z M28,68l4,0 0,4 -4,0 0,-4z M48,68l4,0 0,4 -4,0 0,-4z M52,68l4,0 0,4 -4,0 0,-4z M56,68l4,0 0,4 -4,0 0,-4z M60,68l4,0 0,4 -4,0 0,-4z M68,68l4,0 0,4 -4,0 0,-4z M80,68l4,0 0,4 -4,0 0,-4z M84,68l4,0 0,4 -4,0 0,-4z M88,68l4,0 0,4 -4,0 0,-4z M92,68l4,0 0,4 -4,0 0,-4z M96,68l4,0 0,4 -4,0 0,-4z M108,68l4,0 0,4 -4,0 0,-4z M0,72l4,0 0,4 -4,0 0,-4z M12,72l4,0 0,4 -4,0 0,-4z M24,72l4,0 0,4 -4,0 0,-4z M28,72l4,0 0,4 -4,0 0,-4z M32,72l4,0 0,4 -4,0 0,-4z M40,72l4,0 0,4 -4,0 0,-4z M52,72l4,0 0,4 -4,0 0,-4z M56,72l4,0 0,4 -4,0 0,-4z M60,72l4,0 0,4 -4,0 0,-4z M64,72l4,0 0,4 -4,0 0,-4z M68,72l4,0 0,4 -4,0 0,-4z M72,72l4,0 0,4 -4,0 0,-4z M80,72l4,0 0,4 -4,0 0,-4z M84,72l4,0 0,4 -4,0 0,-4z M96,72l4,0 0,4 -4,0 0,-4z M100,72l4,0 0,4 -4,0 0,-4z M104,72l4,0 0,4 -4,0 0,-4z M0,76l4,0 0,4 -4,0 0,-4z M8,76l4,0 0,4 -4,0 0,-4z M20,76l4,0 0,4 -4,0 0,-4z M28,76l4,0 0,4 -4,0 0,-4z M32,76l4,0 0,4 -4,0 0,-4z M36,76l4,0 0,4 -4,0 0,-4z M52,76l4,0 0,4 -4,0 0,-4z M60,76l4,0 0,4 -4,0 0,-4z M76,76l4,0 0,4 -4,0 0,-4z M96,76l4,0 0,4 -4,0 0,-4z M112,76l4,0 0,4 -4,0 0,-4z M0,80l4,0 0,4 -4,0 0,-4z M16,80l4,0 0,4 -4,0 0,-4z M24,80l4,0 0,4 -4,0 0,-4z M32,80l4,0 0,4 -4,0 0,-4z M36,80l4,0 0,4 -4,0 0,-4z M40,80l4,0 0,4 -4,0 0,-4z M48,80l4,0 0,4 -4,0 0,-4z M56,80l4,0 0,4 -4,0 0,-4z M60,80l4,0 0,4 -4,0 0,-4z M68,80l4,0 0,4 -4,0 0,-4z M72,80l4,0 0,4 -4,0 0,-4z M76,80l4,0 0,4 -4,0 0,-4z M80,80l4,0 0,4 -4,0 0,-4z M84,80l4,0 0,4 -4,0 0,-4z M88,80l4,0 0,4 -4,0 0,-4z M92,80l4,0 0,4 -4,0 0,-4z M96,80l4,0 0,4 -4,0 0,-4z M100,80l4,0 0,4 -4,0 0,-4z M104,80l4,0 0,4 -4,0 0,-4z M32,84l4,0 0,4 -4,0 0,-4z M36,84l4,0 0,4 -4,0 0,-4z M40,84l4,0 0,4 -4,0 0,-4z M48,84l4,0 0,4 -4,0 0,-4z M60,84l4,0 0,4 -4,0 0,-4z M64,84l4,0 0,4 -4,0 0,-4z M68,84l4,0 0,4 -4,0 0,-4z M76,84l4,0 0,4 -4,0 0,-4z M80,84l4,0 0,4 -4,0 0,-4z M96,84l4,0 0,4 -4,0 0,-4z M104,84l4,0 0,4 -4,0 0,-4z M0,88l4,0 0,4 -4,0 0,-4z M4,88l4,0 0,4 -4,0 0,-4z M8,88l4,0 0,4 -4,0 0,-4z M12,88l4,0 0,4 -4,0 0,-4z M16,88l4,0 0,4 -4,0 0,-4z M20,88l4,0 0,4 -4,0 0,-4z M24,88l4,0 0,4 -4,0 0,-4z M36,88l4,0 0,4 -4,0 0,-4z M44,88l4,0 0,4 -4,0 0,-4z M48,88l4,0 0,4 -4,0 0,-4z M68,88l4,0 0,4 -4,0 0,-4z M72,88l4,0 0,4 -4,0 0,-4z M76,88l4,0 0,4 -4,0 0,-4z M80,88l4,0 0,4 -4,0 0,-4z M88,88l4,0 0,4 -4,0 0,-4z M96,88l4,0 0,4 -4,0 0,-4z M104,88l4,0 0,4 -4,0 0,-4z M0,92l4,0 0,4 -4,0 0,-4z M24,92l4,0 0,4 -4,0 0,-4z M32,92l4,0 0,4 -4,0 0,-4z M36,92l4,0 0,4 -4,0 0,-4z M44,92l4,0 0,4 -4,0 0,-4z M48,92l4,0 0,4 -4,0 0,-4z M56,92l4,0 0,4 -4,0 0,-4z M64,92l4,0 0,4 -4,0 0,-4z M80,92l4,0 0,4 -4,0 0,-4z M96,92l4,0 0,4 -4,0 0,-4z M100,92l4,0 0,4 -4,0 0,-4z M108,92l4,0 0,4 -4,0 0,-4z M0,96l4,0 0,4 -4,0 0,-4z M8,96l4,0 0,4 -4,0 0,-4z M12,96l4,0 0,4 -4,0 0,-4z M16,96l4,0 0,4 -4,0 0,-4z M24,96l4,0 0,4 -4,0 0,-4z M32,96l4,0 0,4 -4,0 0,-4z M48,96l4,0 0,4 -4,0 0,-4z M64,96l4,0 0,4 -4,0 0,-4z M72,96l4,0 0,4 -4,0 0,-4z M80,96l4,0 0,4 -4,0 0,-4z M84,96l4,0 0,4 -4,0 0,-4z M88,96l4,0 0,4 -4,0 0,-4z M92,96l4,0 0,4 -4,0 0,-4z M96,96l4,0 0,4 -4,0 0,-4z M112,96l4,0 0,4 -4,0 0,-4z M0,100l4,0 0,4 -4,0 0,-4z M8,100l4,0 0,4 -4,0 0,-4z M12,100l4,0 0,4 -4,0 0,-4z M16,100l4,0 0,4 -4,0 0,-4z M24,100l4,0 0,4 -4,0 0,-4z M32,100l4,0 0,4 -4,0 0,-4z M44,100l4,0 0,4 -4,0 0,-4z M48,100l4,0 0,4 -4,0 0,-4z M56,100l4,0 0,4 -4,0 0,-4z M60,100l4,0 0,4 -4,0 0,-4z M68,100l4,0 0,4 -4,0 0,-4z M72,100l4,0 0,4 -4,0 0,-4z M92,100l4,0 0,4 -4,0 0,-4z M104,100l4,0 0,4 -4,0 0,-4z M0,104l4,0 0,4 -4,0 0,-4z M8,104l4,0 0,4 -4,0 0,-4z M12,104l4,0 0,4 -4,0 0,-4z M16,104l4,0 0,4 -4,0 0,-4z M24,104l4,0 0,4 -4,0 0,-4z M32,104l4,0 0,4 -4,0 0,-4z M36,104l4,0 0,4 -4,0 0,-4z M44,104l4,0 0,4 -4,0 0,-4z M48,104l4,0 0,4 -4,0 0,-4z M56,104l4,0 0,4 -4,0 0,-4z M60,104l4,0 0,4 -4,0 0,-4z M64,104l4,0 0,4 -4,0 0,-4z M68,104l4,0 0,4 -4,0 0,-4z M80,104l4,0 0,4 -4,0 0,-4z M88,104l4,0 0,4 -4,0 0,-4z M92,104l4,0 0,4 -4,0 0,-4z M96,104l4,0 0,4 -4,0 0,-4z M108,104l4,0 0,4 -4,0 0,-4z M0,108l4,0 0,4 -4,0 0,-4z M24,108l4,0 0,4 -4,0 0,-4z M44,108l4,0 0,4 -4,0 0,-4z M52,108l4,0 0,4 -4,0 0,-4z M60,108l4,0 0,4 -4,0 0,-4z M68,108l4,0 0,4 -4,0 0,-4z M72,108l4,0 0,4 -4,0 0,-4z M80,108l4,0 0,4 -4,0 0,-4z M84,108l4,0 0,4 -4,0 0,-4z M92,108l4,0 0,4 -4,0 0,-4z M96,108l4,0 0,4 -4,0 0,-4z M100,108l4,0 0,4 -4,0 0,-4z M108,108l4,0 0,4 -4,0 0,-4z M0,112l4,0 0,4 -4,0 0,-4z M4,112l4,0 0,4 -4,0 0,-4z M8,112l4,0 0,4 -4,0 0,-4z M12,112l4,0 0,4 -4,0 0,-4z M16,112l4,0 0,4 -4,0 0,-4z M20,112l4,0 0,4 -4,0 0,-4z M24,112l4,0 0,4 -4,0 0,-4z M32,112l4,0 0,4 -4,0 0,-4z M36,112l4,0 0,4 -4,0 0,-4z M40,112l4,0 0,4 -4,0 0,-4z M44,112l4,0 0,4 -4,0 0,-4z M48,112l4,0 0,4 -4,0 0,-4z M60,112l4,0 0,4 -4,0 0,-4z M76,112l4,0 0,4 -4,0 0,-4z M88,112l4,0 0,4 -4,0 0,-4z M100,112l4,0 0,4 -4,0 0,-4z M104,112l4,0 0,4 -4,0 0,-4z " stroke="transparent" fill="black"/></svg></template>
+
+<script>
+(function () {
+  var QR = document.getElementById("wifi-qr").innerHTML;
+  var IP = '<a class="addr" href="http://192.168.4.1" target="_blank" rel="noopener">http://192.168.4.1</a>';
+  var ctx = { path: "router" };
+  try { var saved = sessionStorage.getItem("hc-path"); if (saved) ctx.path = saved; } catch (e) {}
+  function rp() { return ctx.path === "android" ? "android" : "router"; }
+  function setPath(p) { ctx.path = p; try { sessionStorage.setItem("hc-path", p); } catch (e) {} }
+
+  // Flows with progress: [label, total]
+  var FLOWS = { router: ["Mit Router", 7], android: ["Android-Hotspot", 7], iphone: ["Auto-Hotspot", 5], reset: ["WLAN zurücksetzen", 2] };
+
+  // Every screen: t = title, b = body (string or fn), q = question, c = choices [icon, label, sub, target, primary?]
+  // f = [flow, step] for the progress bar, go = side effect when entered
+  var N = {
+    start: { t: "Hallo! Was möchtest du tun?", b: "<p class='lead'>Ich führe dich Schritt für Schritt durch. Du kannst jederzeit zurück.</p>",
+      c: [["🚗", "Ich will ein Auto einrichten", "Zum ersten Mal, an einem neuen Ort oder ein weiteres Auto", "wo", 1],
+          ["🛠️", "Ich hab ein Problem", "Etwas klappt nicht oder das Auto macht komische Signale", "problem"]] },
+
+    wo: { t: "Was liegt an?", q: "Wähle, was passt:",
+      c: [["🏠", "Erstes Auto, mit WLAN-Router", "Zuhause, im Verein, überall mit normalem WLAN", "r0"],
+          ["🤖", "Unterwegs, mit Android-Handy", "Ein Android-Handy macht den Hotspot. Der Standardweg ohne Router.", "a1"],
+          ["🍏", "Unterwegs, nur iPhones dabei", "Ein Auto macht das WLAN selbst", "i1"],
+          ["➕", "Ein weiteres Auto dazu", "Ein Auto läuft schon", "w1"],
+          ["🔁", "Das Auto soll ein anderes WLAN nehmen", "Neuer Ort oder neuer Router", "x1"]] },
+
+    // ── Router / Android setup (shared steps r0..r6) ──
+    r0: { f: ["router", 1], go: function () { setPath("router"); }, t: "Das brauchst du",
+      b: "<ul class='plain'><li>Ein geladenes Auto, <b>nicht</b> am Ladekabel.</li><li>Den Namen und das Passwort deines WLANs. Das WLAN muss <b>2,4 GHz</b> können (fast alle Router tun das).</li><li>Dein Handy.</li></ul>",
+      c: [["✅", "Hab ich alles", "", "r1", 1]] },
+    r1: { f: function () { return [rp(), 2]; }, t: "Auto einschalten",
+      b: "<p>Schalte das Auto ein. Die LED leuchtet sofort voll. Warte etwa <b>20 Sekunden</b>.</p>",
+      q: "Was macht die LED jetzt?",
+      c: [["✨", "Sie blitzt zweimal pro Sekunde kurz auf", "Das Einrichtungs-WLAN ist offen", "r2", 1],
+          ["🎵", "Drei Töne, danach leuchtet sie schwach", "Das Auto kennt schon ein WLAN", "p-known"],
+          ["🌗", "Sie wird langsam hell und dunkel", "", "p-charge"],
+          ["💡", "Sie leuchtet nur weiter voll", "", "p-wait"]] },
+    r2: { f: function () { return [rp(), 3]; }, t: "Handy mit „HyperCrash“ verbinden",
+      b: function () { return "<div class='qr-row'><div class='qr' role='img' aria-label='QR-Code für das WLAN HyperCrash'>" + QR + "</div><p>Öffne am Handy die WLAN-Einstellungen und tippe auf <b>„HyperCrash“</b>. Es gibt <b>kein Passwort</b>. Oder scanne den <b>WLAN-QR-Code unten am Auto</b> (oder diesen hier).</p></div>" +
+        "<div class='tip'><b>Android:</b> Fragt das Handy „Kein Internet. Verbunden bleiben?“, tippe auf <b>Ja</b>. Am besten vorher die mobilen Daten ausschalten.</div>"; },
+      q: "Bist du drin?",
+      c: [["✅", "Ja, verbunden", "", "r3", 1], ["❓", "Ich sehe kein WLAN „HyperCrash“", "", "p-kein-wlan"]] },
+    r3: { f: function () { return [rp(), 4]; }, t: "Einrichtungsseite öffnen",
+      b: "<p>Meist öffnet sich die Seite von selbst („Im Netzwerk anmelden“). Wenn nicht, öffne im Browser " + IP + ".</p>",
+      q: "Siehst du die Liste mit WLANs?",
+      c: [["✅", "Ja, die Seite ist offen", "", "r4", 1], ["❓", "Die Seite geht nicht auf", "", "p-seite"]] },
+    r4: { f: function () { return [rp(), 5]; }, t: "WLAN auswählen",
+      b: function () { return "<p>Tippe auf " + (ctx.path === "android" ? "<b>deinen Hotspot</b>" : "<b>dein WLAN</b>") + ", gib das <b>Passwort</b> ein und tippe auf <b>Verbinden</b>. Bleib auf der Seite, das dauert ein paar Sekunden.</p>"; },
+      q: "Was zeigt die Seite?",
+      c: [["✅", "„Verbunden“", "", "r5", 1], ["⚠️", "Eine Fehlermeldung", "Passwort falsch, nicht gefunden …", "p-fehler"], ["❓", "Die Seite ist weg oder lädt ewig", "", "p-weg"]] },
+    r5: { f: function () { return [rp(), 6]; }, t: "„Fertig“ tippen",
+      b: function () { return (ctx.path === "android" ? "<div class='note'><b>Wichtig für den Hotspot:</b> Kopiere oder notiere jetzt die Zahlen-Adresse auf der Seite (z. B. <code>http://192.168.43.17</code>). Die brauchst du gleich auf dem Hotspot-Handy.</div>" : "") +
+        "<p>Tippe auf <b>„Fertig – Auto neu starten“</b>. Das Auto startet neu (LED voll an) und spielt <b>drei Töne</b>. Danach leuchtet die LED nur noch schwach.</p><p><button type='button' class='play' data-snd='ready'>▶ Drei Töne</button> <button type='button' class='play' data-snd='update'>▶ Update-Geräusch</button></p>"; },
+      q: "Was hörst du?",
+      c: [["🎵", "Drei Töne", "", "r6", 1], ["📢", "Drei steigende Heultöne und einen langen fallenden", "", "p-update"]] },
+    r6: { f: function () { return [rp(), 7]; }, t: "Losfahren",
+      b: function () { return ctx.path === "android"
+        ? "<p><b>Auf dem Hotspot-Handy:</b> Öffne die Zahlen-Adresse von eben im Browser. Der QR-Code auf dem Auto funktioniert auf dem Hotspot-Handy selbst nicht.</p><p><b>Auf jedem anderen Handy:</b> Mit dem Hotspot verbinden und den <b>QR-Code oben auf dem Auto</b> scannen.</p>"
+        : "<p>Dein Handy verbindet sich meist von selbst wieder mit deinem WLAN. Scanne dann den <b>QR-Code oben auf dem Auto</b>. Die App fragt einmal nach einem Namen fürs Auto.</p>"; },
+      q: "Ist die App offen?",
+      c: [["🎉", "Ja, die App ist da", "", "ok-setup", 1], ["❓", "Die Seite lädt nicht", "", "p-qr"]] },
+
+    // ── Android hotspot intro ──
+    a1: { f: ["android", 1], go: function () { setPath("android"); }, t: "Hotspot vorbereiten",
+      b: "<p>Am Android-Handy, das den Hotspot macht:</p><ul class='plain'><li>Einstellungen → Hotspot → Band bzw. Frequenz auf <b>2,4 GHz</b>.</li><li>Falls vorhanden: „Hotspot automatisch ausschalten“ <b>aus</b>.</li><li>Hotspot einschalten.</li></ul>",
+      c: [["✅", "Hotspot läuft", "Weiter mit dem Auto", "r1", 1]] },
+
+    // ── iPhone: car as hotspot ──
+    i1: { f: ["iphone", 1], go: function () { setPath("iphone"); }, t: "Ein Auto macht das WLAN",
+      b: "<p>Das iPhone lässt die Geräte in seinem Hotspot offenbar nicht miteinander reden. Dann erreicht nur das Hotspot-iPhone die Autos. Deshalb macht hier ein Auto das WLAN.</p><div class='note'><b>Gut zu wissen:</b> Höchstens <b>10 Geräte</b>, Autos und Handys zusammen (etwa 5 Autos mit 5 Handys). Kein Internet, also keine Updates. Nimm das Auto mit dem vollsten Akku.</div>",
+      c: [["👍", "Verstanden, los", "", "i2", 1]] },
+    i2: { f: ["iphone", 2], t: "Einrichtungsseite öffnen",
+      b: function () { return "<p>Schalte <b>ein</b> Auto ein und warte, bis die LED zweimal pro Sekunde blitzt. Verbinde das Handy dann mit dem WLAN <b>„HyperCrash“</b> (kein Passwort) und öffne " + IP + ", falls die Seite nicht von selbst aufgeht.</p><div class='qr-row'><div class='qr' role='img' aria-label='QR-Code für das WLAN HyperCrash'>" + QR + "</div><p>Oder den WLAN-QR-Code unten am Auto scannen.</p></div>"; },
+      q: "Siehst du die Einrichtungsseite?",
+      c: [["✅", "Ja", "", "i3", 1], ["🎵", "Nein, das Auto spielt drei Töne", "Es kennt schon ein WLAN", "p-known"], ["❓", "Kein WLAN „HyperCrash“ zu sehen", "", "p-kein-wlan"], ["❓", "Die Seite geht nicht auf", "", "p-seite"]] },
+    i3: { f: ["iphone", 3], t: "„Auto als Hotspot nutzen“",
+      b: "<p>Scroll unter die Netzwerkliste zur Karte <b>„Kein WLAN da?“</b> und tippe auf <b>„Auto als Hotspot nutzen“</b>.</p><p>Es erscheint eine Seite mit Hinweisen. Lies sie und tippe auf <b>„Verstanden – Hotspot starten“</b> (nach 2 Minuten geht es auch von selbst weiter). Das Auto startet neu und macht das WLAN <b>„HyperCrash-Hotspot“</b> auf, ohne Passwort.</p>",
+      c: [["✅", "Erledigt", "", "i4", 1]] },
+    i4: { f: ["iphone", 4], t: "Die anderen Autos einschalten",
+      b: "<p>Schalte jetzt die anderen Autos ein. Sie finden den Hotspot von selbst. Ihr gespeichertes WLAN von zu Hause vergessen sie dabei nicht.</p>",
+      c: [["✅", "Alle Autos laufen", "", "i5", 1]] },
+    i5: { f: ["iphone", 5], t: "Handys verbinden",
+      b: "<div class='note'><b>Zuerst die mobilen Daten ausschalten!</b> Sonst ignoriert das Handy das WLAN ohne Internet oder trennt es wieder.</div><p>Dann jedes Handy mit <b>„HyperCrash-Hotspot“</b> verbinden und den <b>QR-Code oben auf dem eigenen Auto</b> scannen. Das Hotspot-Auto erreichst du auch unter " + IP + ".</p>",
+      q: "Ist die App offen?",
+      c: [["🎉", "Ja, alle sind drin", "", "ok-iphone", 1], ["❓", "Die Seite lädt nicht", "", "p-qr"]] },
+
+    // ── More cars ──
+    w1: { t: "Ein weiteres Auto dazu",
+      b: "<p>Das erste Auto muss eingeschaltet und fertig sein (drei Töne). Schalte dann das neue Auto ein: Es fragt die anderen Autos nach dem WLAN und verbindet sich von selbst. Nach den drei Tönen ist es bereit.</p><p>Scanne den <b>QR-Code oben auf dem neuen Auto</b>.</p><div class='tip'>Ist gerade noch ein Einrichtungs-WLAN offen, startet das neue Auto alle 30 Sekunden neu, bis das erste fertig ist. Das ist normal.</div>",
+      q: "Hat es geklappt?",
+      c: [["🎉", "Ja", "", "ok-setup", 1], ["❓", "Nein, es verbindet sich nicht", "", "p-zweites"]] },
+
+    // ── Change WiFi / reset ──
+    x1: { t: "Anderes WLAN nehmen", b: "<p>Ein Auto merkt sich immer nur <b>ein</b> WLAN. Eine neue Einrichtung ersetzt das alte.</p>",
+      q: "Ist das alte WLAN hier noch erreichbar?",
+      c: [["📴", "Nein, das alte WLAN ist hier nicht da", "", "x-away", 1], ["📶", "Ja, ich will trotzdem wechseln", "Dann musst du es zurücksetzen", "x2"]] },
+    "x-away": { t: "Dann geht es von selbst",
+      b: "<p>Das Auto merkt nach etwa 15 Sekunden, dass sein WLAN fehlt. Ist schon ein anderes Auto im neuen WLAN, übernimmt es dessen Daten. Sonst öffnet es das Einrichtungs-WLAN.</p>",
+      c: [["➡️", "Zur Einrichtung", "", "r0", 1]] },
+    x2: { f: ["reset", 1], t: "WLAN zurücksetzen",
+      b: "<ol class='plain'><li>Auto <b>ausschalten</b>.</li><li>Auto <b>auf den Kopf</b> legen und so einschalten.</li><li>Liegen lassen. Nach dem Start piept es zweimal zum Herunterzählen, dann kommt ein <b>langes, fallendes Geräusch</b>. <button type='button' class='play' data-snd='reset'>▶ Anhören</button></li></ol>",
+      q: "Kam das fallende Geräusch?",
+      c: [["✅", "Ja", "", "x3", 1], ["❓", "Nein, nichts passiert", "", "p-reset"]] },
+    x3: { f: ["reset", 2], t: "Fertig zurückgesetzt",
+      b: "<p>Das Auto hat das WLAN vergessen und öffnet jetzt das Einrichtungs-WLAN (LED blitzt). Name und Farbe bleiben erhalten.</p>",
+      q: "Wie willst du weitermachen?",
+      c: [["🏠", "Mit einem WLAN-Router einrichten", "", "r0", 1], ["🤖", "Mit Android-Hotspot", "", "a1"], ["🍏", "Auto als Hotspot (iPhones)", "", "i1"]] },
+
+    // ── Success ──
+    "ok-setup": { t: "Geschafft! 🎉", b: "<p class='lead'>Viel Spaß beim Fahren!</p>",
+      c: [["➕", "Noch ein Auto dazu", "", "w1"], ["🏁", "Zurück zum Start", "", "start"]] },
+    "ok-iphone": { t: "Geschafft! 🎉",
+      b: "<p class='lead'>Viel Spaß beim Fahren!</p><div class='tip'>Der Hotspot gilt nur bis zum Ausschalten. Geht das Hotspot-Auto aus oder startet neu, sind alle offline: dann die Einrichtungsseite öffnen und wieder „Auto als Hotspot nutzen“ tippen. Zurück zum normalen WLAN: einfach alle Autos aus- und wieder einschalten.</div>",
+      c: [["🏁", "Zurück zum Start", "", "start"]] },
+    fixed: { t: "Super! 💪", b: "<p class='lead'>Schön, dass es läuft.</p>", c: [["🏁", "Zurück zum Start", "", "start", 1]] },
+
+    // ── Problems ──
+    problem: { t: "Was ist los?", q: "Wähle, was am besten passt:",
+      c: [["📶", "Ich sehe kein WLAN „HyperCrash“", "", "p-kein-wlan"],
+          ["🌐", "Die Einrichtungsseite geht nicht auf", "Oder sie schließt sich wieder", "p-seite"],
+          ["⚠️", "„Passwort falsch“ oder „fehlgeschlagen“", "Nach dem Tippen auf Verbinden", "p-fehler"],
+          ["⏳", "Nach „Verbinden“ ist die Seite weg", "", "p-weg"],
+          ["📷", "Der QR-Code oben auf dem Auto öffnet nichts", "", "p-qr"],
+          ["🍏", "Im iPhone-Hotspot kommt nur ein Handy rein", "", "p-iphone"],
+          ["➕", "Ein weiteres Auto verbindet sich nicht", "", "p-zweites"],
+          ["🔁", "Das WLAN-Zurücksetzen klappt nicht", "", "p-reset"],
+          ["💡", "Das Auto blinkt oder piept komisch", "Was LED und Töne bedeuten", "signale"]] },
+    "p-kein-wlan": { t: "Kein WLAN „HyperCrash“",
+      b: "<ul class='plain'><li>Bis zu <b>20 Sekunden</b> nach dem Einschalten warten und die WLAN-Liste neu laden.</li><li><b>Drei Töne gehört?</b> Dann ist das Auto schon in einem WLAN, das es kennt.</li><li><b>LED wird langsam hell und dunkel?</b> Das Auto hängt am Ladekabel.</li></ul>",
+      q: "Was trifft zu?", c: [["🔄", "Jetzt ist es da", "", "@resume:r2", 1], ["🎵", "Das Auto hat drei Töne gespielt", "", "p-known"], ["🌗", "Die LED wird hell und dunkel", "", "p-charge"]] },
+    "p-known": { t: "Das Auto kennt schon ein WLAN",
+      b: "<p>Es hat sich mit einem gespeicherten WLAN verbunden, deshalb öffnet es kein Einrichtungs-WLAN. Ist das genau das WLAN, das du willst? Dann bist du schon fertig: Handy ins selbe WLAN und den QR-Code oben auf dem Auto scannen.</p>",
+      q: "Und jetzt?", c: [["✅", "Passt, das ist das richtige WLAN", "", "r6", 1], ["🔁", "Ich will ein anderes WLAN", "WLAN zurücksetzen", "x2"]] },
+    "p-charge": { t: "Das Auto ist im Lademodus",
+      b: "<p>Solange das Ladekabel steckt, lädt das Auto nur und hat kein WLAN. Leuchtet die LED dauerhaft, ist der Akku voll. <b>Kabel abziehen</b>, dann startet das Auto normal neu.</p>",
+      c: [["🔄", "Kabel ist ab, nochmal", "", "@resume:r1", 1]] },
+    "p-wait": { t: "Noch etwas warten",
+      b: "<p>Das Auto sucht bis zu 20 Sekunden nach bekannten WLANs. Dauert es länger und hörst du <b>Heultöne</b>, lädt es gerade ein Update. Einfach eingeschaltet lassen, es startet danach von selbst neu.</p><p>Leuchtet die LED nach einer Minute immer noch nur voll: Auto aus- und wieder einschalten.</p>",
+      c: [["🔄", "Nochmal schauen", "", "@resume:r1", 1]] },
+    "p-update": { t: "Ein Update wird geladen",
+      b: "<p>Die Heultöne heißen: Das Auto lädt eine neue Version. <b>Nicht ausschalten.</b> Danach startet es von selbst neu und spielt die drei Töne.</p>",
+      c: [["🎵", "Jetzt kamen die drei Töne", "", "r6", 1]] },
+    "p-seite": { t: "Seite geht nicht auf",
+      b: function () { return "<p><b>Android:</b></p><ul class='plain'><li>Mobile Daten aus und " + IP + " öffnen. Wichtig: <b>http</b>, nicht https.</li><li>Einstellungen → Netzwerk → <b>Privates DNS</b> auf „Automatisch“ oder „Aus“.</li><li>Hat sich das Handy „HyperCrash“ früher als „kein Internet“ gemerkt: Netzwerk <b>vergessen</b> und neu verbinden.</li></ul><p><b>iPhone:</b></p><ul class='plain'><li>Einstellungen → WLAN → „HyperCrash“ antippen, dann öffnet sich die Seite erneut. Oder in Safari " + IP + " eingeben.</li><li>Fragt das iPhone beim Schließen nach: „Ohne Internet verwenden“.</li></ul>"; },
+      q: "Hat es geholfen?", c: [["✅", "Ja, die Seite ist offen", "", "@resume:r4", 1], ["🛠️", "Nein", "Zurück zur Problemliste", "problem"]] },
+    "p-fehler": { t: "Verbindung fehlgeschlagen",
+      b: "<ul class='plain'><li>Passwort genau prüfen (Groß- und Kleinschreibung) und mit „Nochmal versuchen“ neu eingeben.</li><li>Das Auto kann nur <b>2,4-GHz-WLAN</b>. Reine 5-GHz-Netze tauchen nicht auf oder schlagen fehl.</li><li>WLANs mit Anmeldeseite (Hotel, Zug, Gäste-WLAN) gehen nicht.</li></ul>",
+      q: "Hat es geholfen?", c: [["✅", "Ja, jetzt steht „Verbunden“", "", "r5", 1], ["🤖", "Nein, ich nehme einen Android-Hotspot", "", "a1"], ["🍏", "Nein, ein Auto soll den Hotspot machen", "", "i1"]] },
+    "p-weg": { t: "Seite weg nach „Verbinden“",
+      b: function () { return "<p>Das Auto wechselt dabei kurz den Funkkanal. Verbinde das Handy wieder mit „HyperCrash“ und öffne " + IP + ". Die Seite zeigt dann das Ergebnis.</p>"; },
+      q: "Was steht da?", c: [["✅", "„Verbunden“", "", "r5", 1], ["⚠️", "Eine Fehlermeldung", "", "p-fehler"]] },
+    "p-qr": { t: "QR-Code öffnet nichts",
+      b: "<ul class='plain'><li>Hat das Auto die <b>drei Töne</b> gespielt? Vorher ist es nicht bereit.</li><li>Ist das Handy im <b>selben WLAN</b> wie das Auto? Nicht mehr in „HyperCrash“, und <b>mobile Daten aus</b>.</li><li><b>Ist das Handy selbst der Hotspot,</b> oder läuft ein Auto-Hotspot? Dann die <b>Zahlen-Adresse</b> nehmen: Auf einem Handy, das schon in der App ist, oben rechts das Auto-Symbol antippen, dann das Auto. Es zeigt „Verbundene Spieler“: das Auto antippen und den QR-Code in der App scannen.</li></ul>",
+      q: "Hat es geholfen?", c: [["🎉", "Ja, die App ist da", "", "fixed", 1], ["🍏", "Wir nutzen einen iPhone-Hotspot", "", "p-iphone"], ["🛠️", "Nein", "Zurück zur Problemliste", "problem"]] },
+    "p-iphone": { t: "Nur ein Handy im iPhone-Hotspot",
+      b: "<p>Das liegt am iPhone: Es lässt die Geräte in seinem Hotspot offenbar nicht miteinander reden. Am Handy lässt sich das nicht einstellen.</p>",
+      q: "Was nehmt ihr stattdessen?", c: [["🚗", "Ein Auto als Hotspot", "Klappt mit jedem Handy", "i1", 1], ["🤖", "Ein Android-Handy als Hotspot", "Falls eins da ist", "a1"]] },
+    "p-zweites": { t: "Weiteres Auto verbindet sich nicht",
+      b: "<ul class='plain'><li>Das erste Auto muss eingeschaltet und fertig gestartet sein (drei Töne).</li><li>Dann das neue Auto aus- und wieder einschalten.</li></ul>",
+      q: "Hat es geholfen?", c: [["🎉", "Ja", "", "fixed", 1], ["🔧", "Nein, ich richte es selbst ein", "Über das Einrichtungs-WLAN", "r0"]] },
+    "p-reset": { t: "Zurücksetzen klappt nicht",
+      b: "<ul class='plain'><li>Das Auto muss <b>schon beim Einschalten</b> auf dem Kopf liegen und bis zum fallenden Geräusch liegen bleiben.</li><li>Direkt nach einer Einrichtung ignoriert das Auto beim ersten Start das Umdrehen (damit es beim QR-Scannen nicht aus Versehen alles vergisst). Einfach <b>nochmal aus- und einschalten</b>, dann klappt es.</li></ul>",
+      c: [["🔁", "Nochmal versuchen", "", "x2", 1]] },
+    signale: { t: "Was das Auto dir zeigt",
+      b: "<p class='hint'>Tippe auf „Anhören“, um die Töne zu hören. Am iPhone dafür den Stummmodus ausschalten.</p><div class='signals'>" +
+        "<div class='sig'><div class='led on'></div><div><b>LED nach dem Einschalten voll</b><span>Das Auto startet.</span></div></div>" +
+        "<div class='sig'><div class='led blink'></div><div><b>LED blitzt zweimal pro Sekunde</b><span>Einrichtungs-WLAN „HyperCrash“ ist offen.</span></div></div>" +
+        "<div class='sig'><div class='led dim beeps'></div><div><b>Drei Töne, danach LED schwach</b><span>Fertig und im WLAN. Normaler Fahrbetrieb.</span><button type='button' class='play' data-snd='ready'>▶ Anhören</button></div></div>" +
+        "<div class='sig'><div class='led on beeps'></div><div><b>Drei steigende Heultöne, dann ein fallender</b><span>Ein Update wird geladen. Nicht ausschalten.</span><button type='button' class='play' data-snd='update'>▶ Anhören</button></div></div>" +
+        "<div class='sig'><div class='led breathe'></div><div><b>LED wird langsam hell und dunkel</b><span>Lademodus. Dauerhaft an heißt Akku voll. Beim Einstecken piept es einmal.</span><button type='button' class='play' data-snd='charge'>▶ Anhören</button></div></div>" +
+        "<div class='sig'><div class='led blink beeps'></div><div><b>Piept alle zwei Sekunden</b><span>Stand eine Minute ohne Steuerung herum. Kurz fahren, dann ist Ruhe.</span><button type='button' class='play' data-snd='idle'>▶ Anhören</button></div></div></div>",
+      c: [["🛠️", "Zurück zur Problemliste", "", "problem", 1]] }
+  };
+
+  var card = document.getElementById("card"), backBtn = document.getElementById("back"), homeBtn = document.getElementById("home");
+  var fill = document.getElementById("fill"), label = document.getElementById("prog-label");
+  var lastStep = {}; // where "@resume" returns to
+  var trail = [], dir = 1;
+
+  function val(x) { return typeof x === "function" ? x() : x; }
+  function current() { var id = decodeURIComponent((location.hash || "").slice(1)); return N[id] ? id : "start"; }
+
+  function render() {
+    var id = current(), n = N[id];
+    if (n.go) n.go();
+    if (/^(r[1-6]|i[2-5])$/.test(id)) lastStep[ctx.path] = id;
+    var f = val(n.f);
+    if (f && FLOWS[f[0]]) { var fl = FLOWS[f[0]]; label.innerHTML = "<span>" + fl[0] + "</span><span>Schritt " + f[1] + "/" + fl[1] + "</span>"; fill.style.width = Math.round(f[1] / fl[1] * 100) + "%"; }
+    else if (/^ok-|^fixed$/.test(id)) { label.textContent = "Fertig"; fill.style.width = "100%"; }
+    else { label.textContent = id.indexOf("p-") === 0 || id === "problem" || id === "signale" ? "Fehlerhilfe" : "HyperCrash Assistent"; fill.style.width = "0%"; }
+
+    var h = "<h1>" + n.t + "</h1>";
+    if (n.b) h += "<div class='body'>" + val(n.b) + "</div>";
+    if (n.q) h += "<p class='ask'>" + n.q + "</p>";
+    h += "<div class='choices'>";
+    (n.c || []).forEach(function (c) {
+      h += "<button type='button' class='choice" + (c[4] ? " primary" : "") + "' data-to='" + c[3] + "'><span class='ic' aria-hidden='true'>" + c[0] + "</span><b>" + c[1] + "</b>" + (c[2] ? "<span class='sub'>" + c[2] + "</span>" : "") + "</button>";
+    });
+    h += "</div>";
+    card.innerHTML = h;
+    card.classList.remove("enter", "back"); void card.offsetWidth;
+    card.classList.add("enter"); if (dir < 0) card.classList.add("back");
+    backBtn.disabled = id === "start";
+    homeBtn.disabled = id === "start";
+    window.scrollTo(0, 0);
+    var first = card.querySelector("h1"); if (first) { first.setAttribute("tabindex", "-1"); try { first.focus({ preventScroll: true }); } catch (e) {} }
+  }
+
+  function go(to) {
+    if (to.indexOf("@resume") === 0) to = lastStep[ctx.path] || to.split(":")[1] || "wo";
+    if (("#" + to) === location.hash) { render(); return; }
+    location.hash = to;
+  }
+  card.addEventListener("click", function (e) {
+    var b = e.target.closest("button.choice"); if (!b) return;
+    go(b.getAttribute("data-to"));
+  });
+  backBtn.addEventListener("click", function () {
+    if (trail.length > 1) history.back(); else location.hash = "start";
+  });
+  homeBtn.addEventListener("click", function () { location.hash = "start"; });
+  window.addEventListener("hashchange", function () {
+    var id = current();
+    if (trail.length > 1 && trail[trail.length - 2] === id) { trail.pop(); dir = -1; } else { trail.push(id); dir = 1; }
+    render();
+  });
+  trail.push(current());
+  window.__hcNodes = N;
+  render();
+})();
+</script>
+</body>
+</html>
